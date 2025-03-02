@@ -81,7 +81,7 @@ dictionary:
 
 # 翻译后端相关设置
 backendSpecific:
-  GPT4: # OpenAI API接口通用，GPT4/Claude-3/Deepseek-V3
+  GPT4: # OpenAI API接口通用，GPT4/Claude-3/Deepseek-V3/R1
     tokens:
       - token: sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         endpoint: https://api.openai.com # 使用转发或第三方API时修改
