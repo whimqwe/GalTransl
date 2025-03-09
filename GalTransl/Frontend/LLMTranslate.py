@@ -12,7 +12,6 @@ from time import time
 import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
-from GalTransl.Backend.GPT3Translate import CGPT35Translate
 from GalTransl.Backend.GPT4Translate import CGPT4Translate
 from GalTransl.Backend.BingGPT4Translate import CBingGPT4Translate
 from GalTransl.Backend.SakuraTranslate import CSakuraTranslate
@@ -364,8 +363,6 @@ async def init_gptapi(
     eng_type = projectConfig.select_translator
 
     match eng_type:
-        case "gpt35-0613" | "gpt35-1106" | "gpt35-0125":
-            return CGPT35Translate(projectConfig, eng_type, proxyPool, tokenPool)
         case "gpt4" | "gpt4-turbo" | "r1":
             return CGPT4Translate(projectConfig, eng_type, proxyPool, tokenPool)
         case "newbing":
