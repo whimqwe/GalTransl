@@ -75,7 +75,14 @@ async def doLLMTranslate(
     file_list = get_file_list(projectConfig.getInputPath())
     if not file_list:
         raise RuntimeError(f"{projectConfig.getInputPath()}中没有待翻译的文件")
-
+    
+    # 按文件名自然排序（处理数字部分）
+    import re
+    def natural_sort_key(s):
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+    
+    file_list.sort(key=natural_sort_key)
+    
     # 读取所有文件获得total_chunks列表
     with ThreadPoolExecutor(max_workers=workersPerProject) as executor:
         future_to_file = {
