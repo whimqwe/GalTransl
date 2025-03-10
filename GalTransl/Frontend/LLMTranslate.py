@@ -13,7 +13,6 @@ import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
 from GalTransl.Backend.GPT4Translate import CGPT4Translate
-from GalTransl.Backend.BingGPT4Translate import CBingGPT4Translate
 from GalTransl.Backend.SakuraTranslate import CSakuraTranslate
 from GalTransl.Backend.RebuildTranslate import CRebuildTranslate
 from GalTransl.ConfigHelper import initDictList, CProjectConfig
@@ -371,11 +370,6 @@ async def init_gptapi(
     match eng_type:
         case "gpt4" | "gpt4-turbo" | "r1":
             return CGPT4Translate(projectConfig, eng_type, proxyPool, tokenPool)
-        case "newbing":
-            cookiePool: list[str] = []
-            for i in projectConfig.getBackendConfigSection("bingGPT4")["cookiePath"]:
-                cookiePool.append(joinpath(projectConfig.getProjectDir(), i))
-            return CBingGPT4Translate(projectConfig, cookiePool, proxyPool)
         case "sakura-009" | "sakura-v1.0" | "galtransl-v2.5":
             sakura_endpoint = await sakuraEndpointQueue.get()
             if sakuraEndpointQueue is None:
