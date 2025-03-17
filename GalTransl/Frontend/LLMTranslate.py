@@ -370,7 +370,7 @@ async def init_gptapi(
     match eng_type:
         case "gpt4" | "gpt4-turbo" | "r1":
             return CGPT4Translate(projectConfig, eng_type, proxyPool, tokenPool)
-        case "sakura-009" | "sakura-v1.0" | "galtransl-v2.5":
+        case "sakura-009" | "sakura-v1.0" | "galtransl-v2.5" | "galtransl-v3":
             sakura_endpoint = await sakuraEndpointQueue.get()
             if sakuraEndpointQueue is None:
                 raise ValueError(f"Endpoint is required for engine type {eng_type}")
