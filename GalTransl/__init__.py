@@ -63,8 +63,6 @@ TRANSLATOR_SUPPORTED = {
     "r1": "Deepseek-R1模型用",
     "sakura-v1.0": "（适用v1.0版prompt）为翻译轻小说/Gal开展大规模训练的本地模型，具有多个型号和大小",
     "galtransl-v3": "为翻译Gal基于Sakura进一步优化的本地小模型，可运行在6G空闲显存的游戏显卡和MacBook上",
-    "galtransl-v2.5": "为翻译Gal基于Sakura进一步优化的本地小模型，可运行在6G空闲显存的游戏显卡和MacBook上",
-    "sakura-009": "（适用v0.9版prompt，不支持GPT字典）为翻译轻小说/视觉小说开展大规模训练的本地模型。",
     "rebuildr": "重建结果 用译前译后字典通过缓存刷写结果json -- 跳过翻译和写缓存",
     "rebuilda": "重建缓存和结果 用译前译后字典刷写缓存+结果json -- 跳过翻译",
     "dump-name": "导出name字段，生成人名替换表，用于翻译name字段",
