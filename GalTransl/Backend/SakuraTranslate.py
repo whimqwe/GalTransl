@@ -547,6 +547,7 @@ class CSakuraTranslate(BaseTranslate):
                 "content": f"{json_lines}",
             }
         )
+        self.last_translation = json_lines
         LOGGER.info("-> 恢复了上下文")
 
     def check_degen_in_process(self, cn: str = ""):
