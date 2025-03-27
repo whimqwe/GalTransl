@@ -3,7 +3,7 @@ A simple wrapper for the official ChatGPT API
 """
 import json
 import os
-import pkg_resources
+from importlib.metadata import version
 from importlib.resources import path
 from pathlib import Path
 from typing import AsyncGenerator
@@ -35,8 +35,8 @@ class Chatbot:
         
         # 检查httpx版本
         try:
-            httpx_version = pkg_resources.get_distribution("httpx").version
-            is_new_version = pkg_resources.parse_version(httpx_version) >= pkg_resources.parse_version("0.28.0")
+            httpx_version = version("httpx")
+            is_new_version = tuple(map(int, httpx_version.split('.'))) >= (0, 28, 0)
         except:
             is_new_version = False
             
