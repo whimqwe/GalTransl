@@ -155,16 +155,8 @@ async def doLLMTranslate(
         all_tasks.append(task)
     
     # 使用有序执行策略
-    # 将任务分成批次，每批次同时执行workersPerProject个任务
-    # 确保前一批次完成后再执行下一批次
-    batch_size = workersPerProject
-    for i in range(0, len(all_tasks), batch_size):
-        batch_tasks = all_tasks[i:i+batch_size]
-        batch_results = await asyncio.gather(*batch_tasks)
-        for result in batch_results:
-            if result is not None:
-                # 处理结果
-                pass
+    # 使用信号量控制并发数量，让任务在worker可用时立即执行
+    await asyncio.gather(*all_tasks)
     
     progress_bar.close()
 
