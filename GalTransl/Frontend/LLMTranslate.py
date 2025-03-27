@@ -12,8 +12,8 @@ from time import time
 import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
-from GalTransl.Backend.GPT4Translate import CGPT4Translate
-from GalTransl.Backend.SakuraTranslate import CSakuraTranslate
+
+
 from GalTransl.Backend.RebuildTranslate import CRebuildTranslate
 from GalTransl.ConfigHelper import initDictList, CProjectConfig
 from GalTransl.Dictionary import CGptDict, CNormalDic
@@ -360,9 +360,14 @@ async def init_gptapi(
     eng_type = projectConfig.select_translator
 
     match eng_type:
+        case "ForGal":
+            from GalTransl.Backend.ForGalTranslate import ForGalTranslate
+            return ForGalTranslate(projectConfig, eng_type, proxyPool, tokenPool)
         case "gpt4" | "gpt4-turbo" | "r1":
+            from GalTransl.Backend.GPT4Translate import CGPT4Translate
             return CGPT4Translate(projectConfig, eng_type, proxyPool, tokenPool)
         case "sakura-009" | "sakura-v1.0" | "galtransl-v2.5" | "galtransl-v3":
+            from GalTransl.Backend.SakuraTranslate import CSakuraTranslate
             sakura_endpoint = await sakuraEndpointQueue.get()
             if sakuraEndpointQueue is None:
                 raise ValueError(f"Endpoint is required for engine type {eng_type}")
