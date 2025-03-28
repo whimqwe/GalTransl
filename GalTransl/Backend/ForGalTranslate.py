@@ -14,7 +14,7 @@ from random import choice
 from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
-from GalTransl.Utils import extract_code_blocks, fix_quotes
+from GalTransl.Utils import extract_code_blocks, fix_quotes2
 from GalTransl.Backend.Prompts import (
     SMARTGAL_BETA_SYSTEM,
     SMARTGAL_BETA_TRANS_PROMPT
@@ -162,7 +162,9 @@ class ForGalTranslate(BaseTranslate):
         for i, trans in enumerate(trans_list):
 
             speaker=trans.speaker if trans.speaker else "null"
-            tmp_obj=f"{trans.index}\t{speaker}\t{trans.post_jp}"
+            src_text=trans.post_jp
+            src_text=src_text.replace("\r\n","\\n").replace("\t","\\t")
+            tmp_obj=f"{trans.index}\t{speaker}\t{src_text}"
             input_list.append(tmp_obj)
 
 
@@ -255,7 +257,7 @@ class ForGalTranslate(BaseTranslate):
             for line in result_text.split("\n"):
                 line_sp=line.split("\t")
                 if len(line_sp)!=3:
-                    error_message = f"第{line}句不无法解析"
+                    error_message = f"第{line}句无法解析"
                     error_flag = True
                     break
                 if line_sp[0] == "ID":
@@ -278,6 +280,9 @@ class ForGalTranslate(BaseTranslate):
 
                 if "Chinese" in self.target_lang:  # 统一简繁体
                     line_dst = self.opencc.convert(line_dst)
+                
+                if '"' not in trans_list[i].post_jp and '"' in line_dst:
+                    line_dst = fix_quotes2(line_dst)
                 trans_list[i].pre_zh = line_dst
                 trans_list[i].post_zh = line_dst
                 trans_list[i].trans_by = self.chatbot.engine
