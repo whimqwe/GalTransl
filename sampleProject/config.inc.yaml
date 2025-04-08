@@ -17,6 +17,7 @@ backendSpecific:
 common:
   gpt.numPerRequestTranslate: 8 # 单次请求翻译句子数量，推荐值 < 15
   workersPerProject: 1 # 同时翻译n个文件。当开启splitFile时，允许单文件多线程。
+  sortBy: "name" # 翻译顺序，name为文件名，size为大文件优先，多线程时大文件优先可以提高速度[name/size]
   language: "ja2zh-cn" # 源语言2(to)目标语言。[zh-cn/zh-tw/en/ja/ko/ru/fr]
 
   # 单文件分割设置（※重要：不要在翻译中途修改，否则会导致缓存失效）
