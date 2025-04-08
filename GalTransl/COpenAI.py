@@ -174,7 +174,7 @@ class COpenAITokenPool:
         for _, token in self.tokens:
             fs.append(
                 self._check_token_availability_with_retry(
-                    token, proxy if proxy else None, eng_type
+                    token, proxy if proxy else None, model_name
                 )
             )
         result: list[tuple[bool, COpenAIToken]] = await tqdm.gather(*fs, ncols=80)
