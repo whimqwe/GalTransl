@@ -298,6 +298,10 @@ class ForGalTranslate(BaseTranslate):
                     line_dst = line_dst.replace("\\n", "\r\n")
                 if "\t" in trans_list[i].post_jp:
                     line_dst = line_dst.replace("\\t", "\t")
+                if "……" in trans_list[i].post_jp and "..." in line_dst:
+                    line_dst = line_dst.replace("......", "……")
+                    line_dst = line_dst.replace("...", "……")
+
                 trans_list[i].pre_zh = line_dst
                 trans_list[i].post_zh = line_dst
                 trans_list[i].trans_by = self.chatbot.engine
