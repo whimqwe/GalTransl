@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional, Union, Tuple
-from os import makedirs, sep as os_sep
+from os import makedirs,cpu_count, sep as os_sep
 from os.path import (
     join as joinpath,
     exists as isPathExists,
@@ -83,7 +83,7 @@ async def doLLMTranslate(
     file_list.sort(key=natural_sort_key)
     
     # 读取所有文件获得total_chunks列表
-    with ThreadPoolExecutor(max_workers=workersPerProject) as executor:
+    with ThreadPoolExecutor(max_workers=cpu_count()) as executor:
         future_to_file = {
             executor.submit(fplugins_load_file, file_path, fPlugins): file_path
             for file_path in file_list
