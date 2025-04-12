@@ -66,9 +66,13 @@ async def doLLMTranslate(
     projectConfig.gpt_dic = CGptDict(
         initDictList(gpt_dic_list, default_dic_dir, project_dir)
     )
-    if projectConfig.getDictCfgSection().get("sortPrePostDict", False):
+    if projectConfig.getDictCfgSection().get("sortPrePostDict", True):
         projectConfig.pre_dic.sort_dic()
         projectConfig.post_dic.sort_dic()
+    elif projectConfig.getDictCfgSection().get("sortDict", True):
+        projectConfig.pre_dic.sort_dic()
+        projectConfig.post_dic.sort_dic()
+        projectConfig.gpt_dic.sort_dic()
 
     # 获取待翻译文件列表
     file_list = get_file_list(projectConfig.getInputPath())
@@ -148,21 +152,19 @@ async def doLLMTranslate(
         ordered_chunks = total_chunks
         
     
-    # 创建任务队列，保持顺序但允许并行执行
+    # 创建所有任务
     all_tasks = []
     for chunk in ordered_chunks:
-        task = run_task(
+        all_tasks.append(
             doLLMTranslSingleChunk(
                 semaphore,
                 split_chunk=chunk,
                 projectConfig=projectConfig,
             )
         )
-        all_tasks.append(task)
     
-    # 使用有序执行策略
-    # 使用信号量控制并发数量，让任务在worker可用时立即执行
-    await asyncio.gather(*all_tasks)
+    # 使用信号量控制并发数量，同时启动所有任务
+    await asyncio.gather(*[run_task(task) for task in all_tasks])
     
     progress_bar.close()
 
@@ -200,7 +202,7 @@ async def doLLMTranslSingleChunk(
         )
         print("\n", flush=True)
         part_info = f" (part {file_index+1}/{total_splits})" if total_splits > 1 else ""
-        LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
+        #LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
 
         gptapi = await init_gptapi(projectConfig)
 

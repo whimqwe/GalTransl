@@ -410,7 +410,16 @@ class CGptDict:
                     if dic.note != "":
                         promt += f" #{dic.note}"
                     promt += "\n"
-
+        elif type == "tsv":
+            for i, dic in enumerate(self._dic_list):
+                if dic.startswith_flag or dic.search_word in input_text:
+                    promt += f"{dic.search_word}\t{dic.replace_word}"
+                    input_text = input_text.replace(dic.search_word, "")
+                    if dic.note!= "":
+                        promt += f"\t{dic.note}"
+                    promt += "\n"
+            if promt!= "":
+                promt = f"原文\t译文\t备注\n{promt}"
         return promt
 
     def check_dic_use(self, find_from_str: str, tran: CSentense):
