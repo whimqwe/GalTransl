@@ -44,11 +44,8 @@ def initGPTToken(config: CProjectConfig, eng_type: str) -> Optional[list[COpenAI
         degradeBackend = val
 
     defaultEndpoint = "https://api.openai.com"
-    if "GPT4" in config.projectConfig["backendSpecific"]:  # 兼容旧版
-        section_name = "GPT4"
-    else:
-        section_name = "OpenAI-Compatible"
-    if all_tokens := config.getBackendConfigSection(section_name).get("tokens"):
+
+    if all_tokens := config.getBackendConfigSection("OpenAI-Compatible").get("tokens"):
         for tokenEntry in all_tokens:
             token = tokenEntry["token"]
             domain = (
@@ -74,11 +71,7 @@ class COpenAITokenPool:
 
         token_list: list[dict] = []
         defaultEndpoint = "https://api.openai.com"
-        if "GPT4" in config.projectConfig["backendSpecific"]:  # 兼容旧版
-            section_name = "GPT4"
-        else:
-            section_name = "OpenAI-Compatible"
-
+        section_name = "OpenAI-Compatible"
         self.tokens: list[tuple[bool, COpenAIToken]] = []
         self.force_eng_name = config.getBackendConfigSection(section_name).get(
             "rewriteModelName", ""
@@ -97,7 +90,7 @@ class COpenAITokenPool:
                 pass
 
         for token in token_list:
-            self.tokens.append((False, token))
+            self.tokens.append((True, token))
 
     async def _isTokenAvailable(
         self, token: COpenAIToken, proxy: CProxy = None, model_name: str = ""
@@ -237,8 +230,7 @@ async def init_sakura_endpoint_queue(projectConfig: CProjectConfig) -> Optional[
 
     workersPerProject = projectConfig.getKey("workersPerProject") or 1
     sakura_endpoint_queue = asyncio.Queue()
-    backendSpecific = projectConfig.projectConfig["backendSpecific"]
-    section_name = "SakuraLLM" if "SakuraLLM" in backendSpecific else "Sakura"
+    section_name = "SakuraLLM" 
     if "endpoints" in projectConfig.getBackendConfigSection(section_name):
         endpoints = projectConfig.getBackendConfigSection(section_name)["endpoints"]
     else:

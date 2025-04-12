@@ -175,10 +175,12 @@ async def run_galtransl(cfg: CProjectConfig, translator: str):
     # OpenAITokenPool初始化
     if any(x in translator for x in NEED_OpenAITokenPool):
         OpenAITokenPool = COpenAITokenPool(cfg, translator)
-        await OpenAITokenPool.checkTokenAvailablity(
-            proxyPool.getProxy() if proxyPool else None, translator
-        )
-        OpenAITokenPool.getToken()
+        checkAvailable=cfg.getBackendConfigSection("OpenAI-Compatible").get("checkAvailable",True)
+        if checkAvailable:
+            await OpenAITokenPool.checkTokenAvailablity(
+                proxyPool.getProxy() if proxyPool else None, translator
+            )
+            OpenAITokenPool.getToken()
     else:
         OpenAITokenPool = None
 

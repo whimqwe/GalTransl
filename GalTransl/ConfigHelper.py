@@ -144,6 +144,12 @@ class CProjectConfig:
         """
         backendName: GPT35 / GPT4 / ChatGPT / bingGPT4
         """
+        if backendName=="OpenAI-Compatible":
+            if "OpenAI-Compatible" not in self.projectConfig["backendSpecific"]:
+                backendName="GPT4"
+        elif backendName=="SakuraLLM":
+            if "SakuraLLM" not in self.projectConfig["backendSpecific"]:
+                backendName="Sakura"
         return self.projectConfig["backendSpecific"][backendName]
 
     def getDictCfgSection(self, key: str = "") -> dict:
