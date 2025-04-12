@@ -7,6 +7,7 @@ from GalTransl import LOGGER
 from typing import List
 import orjson
 import os
+from GalTransl.i18n import get_text,GT_LANG
 
 
 def save_transCache_to_json(trans_list: CTransList, cache_file_path, post_save=False):
@@ -107,7 +108,7 @@ def get_transCache_from_json_new(
                     cache_dict[line_priv + line_now + line_next] = cache
             except Exception as e:
                 f.close()
-                LOGGER.error(f"读取缓存{cache_file_path}时出现错误，请检查错误信息")
+                LOGGER.error(get_text("cache_read_error", GT_LANG, cache_file_path=cache_file_path))
                 raise e
 
     for tran in trans_list:
@@ -171,7 +172,7 @@ def get_transCache_from_json_new(
                     no_proofread or "Fail" in cache_dict[cache_key]["proofread_by"]
                 ):  # 且未校对
                     trans_list_unhit.append(tran)
-                    LOGGER.debug(f"重试失败的: {line_now}")
+                    LOGGER.debug(get_text("retry_failed", GT_LANG, line_now=line_now))
                     continue
 
             # retran_key在pre_jp中

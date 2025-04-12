@@ -5,6 +5,7 @@ from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
 from GalTransl import LOGGER, LANG_SUPPORTED
+from GalTransl.i18n import get_text,GT_LANG
 from sys import exit
 from GalTransl.ConfigHelper import (
     CProjectConfig,
@@ -57,11 +58,11 @@ class BaseTranslate:
             self.source_lang = "ja"
             self.target_lang = "zh-cn"
         if self.source_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的源语言代码：" + self.source_lang)
+            raise ValueError(get_text("invalid_source_language", self.target_lang, self.source_lang))
         else:
             self.source_lang = LANG_SUPPORTED[self.source_lang]
         if self.target_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的目标语言代码：" + self.target_lang)
+            raise ValueError(get_text("invalid_target_language", self.target_lang, self.target_lang))
         else:
             self.target_lang = LANG_SUPPORTED[self.target_lang]
 

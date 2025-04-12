@@ -4,6 +4,7 @@ from GalTransl.Dictionary import CGptDict
 from GalTransl.Cache import get_transCache_from_json_new
 from GalTransl.Backend.BaseTranslate import BaseTranslate
 from GalTransl import LOGGER
+from GalTransl.i18n import get_text,GT_LANG
 
 
 class CRebuildTranslate(BaseTranslate):
@@ -46,7 +47,8 @@ class CRebuildTranslate(BaseTranslate):
         )
 
         if len(trans_list_hit) != len(trans_list):  # 不Build
-            LOGGER.error(f"{filename} 缓存不完整，无法重构")
-            raise Exception(f"{filename} 缓存不完整，无法重构")
+            error_msg = get_text("cache_incomplete", GT_LANG, filename)
+            LOGGER.error(error_msg)
+            raise Exception(error_msg)
 
         return trans_list_hit

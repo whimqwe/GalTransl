@@ -210,8 +210,11 @@ ID\tNAME\tDST
 3. 按照"翻译要求"和"术语表"，将`src`的内容翻译成[TargetLang]，填入`DST`
 然后停止输出，不需要任何其他解释或说明。
 
-## TSV输入
+## 输入
 
 ID\tNAME\tSRC
 [Input]
+
+## 输出
+ID\tNAME\tDST
 """

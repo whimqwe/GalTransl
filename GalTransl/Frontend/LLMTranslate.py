@@ -12,6 +12,7 @@ from time import time
 import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
+from GalTransl.i18n import get_text,GT_LANG
 
 
 from GalTransl.Backend.RebuildTranslate import CRebuildTranslate
@@ -101,7 +102,7 @@ async def doLLMTranslate(
                     projectConfig.file_save_funcs[file_path] = save_func
                     total_chunks.extend(input_splitter.split(json_list, file_path))
                 except Exception as exc:
-                    LOGGER.error(f"处理文件 {file_path} 时发生错误: {exc}")
+                    LOGGER.error(get_text("file_processing_error", GT_LANG, file_path, exc))
                 finally:
                     pbar.update(1)
 
@@ -126,7 +127,7 @@ async def doLLMTranslate(
             # )
             return result
         except Exception as e:
-            LOGGER.error(f"任务执行失败: {e}")
+            LOGGER.error(get_text("task_execution_failed", GT_LANG, e))
             return None
 
     soryBy=projectConfig.getKey("sortBy","name")
@@ -219,7 +220,7 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.before_src_processed(tran)
                 except Exception as e:
-                    LOGGER.error(f"插件 {plugin.name} 执行失败: {e}")
+                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
 
             if projectConfig.getFilePlugin() in ["file_galtransl_json","file_mtbench_chrf"]:
                 tran.analyse_dialogue()
@@ -231,7 +232,7 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.after_src_processed(tran)
                 except Exception as e:
-                    LOGGER.error(f"插件 {plugin.name} 执行失败: {e}")
+                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
 
         # 执行翻译
         await gptapi.batch_translate(
@@ -288,16 +289,16 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.after_dst_processed(tran)
                 except Exception as e:
-                    LOGGER.error(f"插件 {plugin.name} 执行失败: {e}")
+                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
 
         et = time()
-        LOGGER.info(f"文件 {file_name}{part_info} 翻译完成，用时 {et-st:.3f}s.")
+        LOGGER.info(get_text("file_translation_completed", GT_LANG, file_name, part_info, et-st))
         gptapi.clean_up()
 
         split_chunk.update_file_finished_chunk()
         # 检查是否该文件的所有chunk都翻译完成
         if split_chunk.is_file_finished():
-            LOGGER.debug(f"文件 {file_name} 的所有chunk都翻译完成")
+            LOGGER.debug(get_text("file_chunks_completed", GT_LANG, file_name))
             await postprocess_results(
                 split_chunk.get_file_finished_chunks(), projectConfig
             )
@@ -407,7 +408,7 @@ def fplugins_load_file(file_path: str, fPlugins: list) -> Tuple[List[Dict], Any]
                 f"插件 {getattr(plugin, 'name', 'Unknown')} 读取文件 {file_path} 出错: {e}"
             )
 
-    assert result is not None, f"文件 {file_path} 无法加载"
+    assert result is not None, get_text("file_load_failed", GT_LANG, file_path)
 
     assert isinstance(result, list), f"文件 {file_path} 不是列表"
 

@@ -1,0 +1,116 @@
+---
+# Translation Backend Settings
+backendSpecific:
+  OpenAI-Compatible: # (ForGal/gpt4/r1 template) OpenAI API compatible interface
+    tokens:
+      - token: sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        endpoint: https://api.openai.com # Request address, modify when using forwarding or third-party API
+    rewriteModelName: "" # Set custom model name, used for calling Claude/Deepseek models
+    checkAvailable: true # Check if API is available before translation
+
+  SakuraLLM: # Sakura/Galtransl API
+    endpoints:
+      - http://127.0.0.1:8080
+      #- http://127.0.0.1:5001 # You can fill in multiple endpoints for multi-threading
+    rewriteModelName: "" # Set custom model name, modify when using ollama
+
+# Program Settings
+common:
+  gpt.numPerRequestTranslate: 8 # Number of sentences per translation request, recommended value < 15
+  workersPerProject: 8 # Number of files to translate simultaneously (need to enable splitFile for multi-threading a single file)
+  sortBy: "size" # Translation order, "name" for filename, "size" for large files first (large files first can improve overall speed) [name/size]
+  language: "ja2zh-cn" # Source language 2(to) target language. [zh-cn/zh-tw/en/ja/ko/ru/fr]
+
+  # Single file splitting settings (※Important: Do not modify during translation, otherwise cache will be invalidated)
+  splitFile: false # Whether to enable single file splitting. [True/False]
+  splitFileMethod: "DictionaryCountSplitter" # Splitting method, EqualPartsSplitter for equal parts, DictionaryCountSplitter for specified number of sentences. [EqualPartsSplitter/DictionaryCountSplitter]
+  splitFileNum: 200 # For equal parts, split file into n parts; for sentence count, split every n sentences, recommended > 100
+  splitFileCrossNum: 0 # Overlap n sentences when splitting files, may improve translation quality at connection points [recommended 0 or 10].
+
+  save_steps: 1 # Save cache every n translations, can be increased to 100 for large files to improve speed. [1-999]
+  start_time: "" # Scheduled start time, e.g., 00:30, leave empty to start immediately. [00:00-23:59]
+  linebreakSymbol: "\r\n" # Line break symbol used in json for this project, used for problem finding and auto-fixing, does not affect translation.
+  skipH: false # Skip sentences that might trigger sensitive word detection. [True/False]
+  skipRetry: false # When parsing results fail, skip retry loop and use "Fail Translation" placeholder. [True/False]
+  retranslFail: false # Retranslate all sentences showing "Fail Translation" on restart. [True/False]
+  retranslKey:
+    - "Restart to actively retranslate sentences containing corresponding **keywords** in cached problem or pre_jp, remove the # comment in the list below to use, or add custom keywords."
+    #- "High word frequency" # Repeated more than 20 times
+    #- "Remaining Japanese" # Japanese hiragana/katakana remaining
+    #- "Project GPT dictionary" # LLM didn't translate according to GPT dictionary requirements
+    #- "Introduced English" # No English originally, but translation introduced English
+
+  # General Translation Settings
+  gpt.streamOutputMode: true # Streaming output effect, ineffective in multi-threading. [True/False]
+  gpt.tooManyRequestsWaitTime: 60 # Wait time for Too Many Requests error, in seconds
+  gpt.enhance_jailbreak: False # Reduce general model translation refusals
+  # GPT4
+  gpt.enableProofRead: false # (GPT4) Whether to enable post-translation proofreading. (Not recommended, long unmaintained) [True/False]
+  gpt.numPerRequestProofRead: 7 # (GPT4) Number of sentences per proofreading request, not recommended to modify
+  gpt.change_prompt: false # (GPT-4/r1) Whether to enable modifying default prompt
+  gpt.prompt_type: "AdditionalPrompt" # (GPT-4/r1) "AdditionalPrompt" to add additional requirements, "OverwritePrompt" to overwrite original prompt
+  gpt.prompt_content: "Translate results using classical Chinese" # Example additional requirement, effective only when change_prompt is true
+  # Sakura/GalTransl
+  gpt.token_limit: 0 # (Sakura/Galtransl-7b) (Experimental) Limit token count per request when > 0. Set to llama.cpp -c value divided by 2 to prevent context overflow.
+  gpt.transl_dropout: 0 # (Sakura/Galtransl-7b) (Experimental) Drop last n lines of translation results, may improve context accuracy. [0-2]
+  # Debug Logs
+  loggingLevel: info # Logging level [debug/info/warning]
+  saveLog: false # Whether to save logs to file [True/False]
+
+# Plugins, plugin descriptions can be viewed by selecting show-plugs after starting the program, or in the plugins directory
+plugin:
+  filePlugin: file_galtransl_json # File plugin for supporting more formats, file_galtransl_json is the standard format plugin for this program
+  # Use file_subtitle_srt_lrc_vtt for translating subtitles
+  # Use file_epub_epub or file_plaintext_txt for translating novels
+  # Use file_i18n_json for translating mtool exported json
+  textPlugins: # Text processing plugin list, can set multiple, executed in order
+    - text_common_normalfix # Common text fix plugin
+    #- text_common_skipNoJP # Skip sentences without Japanese plugin
+
+  # Settings for a specific plugin can be modified in the yaml file in the plugins directory, or set like this:
+  file_subtitle_srt_lrc_vtt: # Example, can override plugin yaml settings in project config file
+    Save bilingual subtitles: true
+
+# Proxy settings, generally not needed when using third-party API providers
+proxy:
+  enableProxy: false # Whether to enable proxy. [True/False]
+  proxies:
+    - address: http://127.0.0.1:7890
+
+# Dictionary settings
+dictionary:
+  defaultDictFolder: Dict # Common dictionary folder, relative to program directory, can also be absolute path
+  usePreDictInName: false # Apply pre-translation dictionary to name field, can be used for renaming, won't change result's name field [True/False]
+  usePostDictInName: false # Apply post-translation dictionary to name field, can be used to translate name field [True/False]
+  sortDict: true # Sort all dictionaries by search term length. [True/False]
+  # Pre-translation dictionary
+  preDict:
+    - 01H_dictionary_correction_pre.txt # For correcting unclear speech
+    - 00common_dictionary_pre.txt
+    - (project_dir)project_dictionary_pre.txt # (project_dir) means dictionary in project folder
+  # GPT dictionary
+  gpt.dict:
+    - GPT_dictionary.txt
+    - (project_dir)project_GPT_dictionary.txt
+  # Post-translation dictionary
+  postDict:
+    - 00common_dictionary_symbols_post.txt # Symbol correction
+    - 00common_dictionary_post.txt
+    - (project_dir)project_dictionary_post.txt
+
+# Automatic problem analysis configuration, add # before - to disable
+problemAnalyze:
+  problemList: # List of problems to detect
+    - High word frequency # Repeated more than 20 times
+    - Punctuation errors # Punctuation marks added or missing
+    - Remaining Japanese # Japanese hiragana/katakana remaining
+    - Missing line breaks # Missing line breaks, usually not a problem
+    - Extra line breaks # More line breaks than original sentence, may cause screen overflow
+    - Longer than Japanese # More than 1.3 times longer than Japanese
+    - Dictionary usage # Not translated according to GPT dictionary requirements
+    - Introduced English # No English originally, but translation introduced English
+    #- Language not fluent # Not translated into target language
+    #- Strictly longer than Japanese # Strict check, cannot be longer than Japanese
+  arinashiDict: # Format is aaa:<space>bbb (to be deprecated)
+    aaa: bbb
+    ccc: ddd

@@ -8,6 +8,7 @@ from GalTransl.COpenAI import COpenAITokenPool, init_sakura_endpoint_queue
 from GalTransl.yapsy.PluginManager import PluginManager
 from GalTransl.ConfigHelper import CProjectConfig, CProxyPool
 from GalTransl.Frontend.LLMTranslate import doLLMTranslate
+from GalTransl.i18n import get_text,GT_LANG
 from GalTransl.CSplitter import (
     DictionaryCountSplitter,
     EqualPartsSplitter,
@@ -149,10 +150,10 @@ async def run_galtransl(cfg: CProjectConfig, translator: str):
             plugin_conf["Settings"].update(project_plugin_conf[plugin_module])
         project_conf["project_dir"] = cfg.getProjectDir()
         try:
-            LOGGER.info(f'加载插件"{plugin.name}"...')
+            LOGGER.info(get_text("loading_plugin", GT_LANG, plugin.name))
             plugin.plugin_object.gtp_init(plugin_conf, project_conf)
         except Exception as e:
-            LOGGER.error(f'插件"{plugin.name}"加载失败: {e}')
+            LOGGER.error(get_text("plugin_load_failed", GT_LANG, plugin.name, e))
             if plugin in text_plugins:
                 text_plugins.remove(plugin)
             elif plugin in file_plugins:

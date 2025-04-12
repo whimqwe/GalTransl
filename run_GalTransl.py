@@ -7,7 +7,12 @@ from GalTransl import (
     PROGRAM_SPLASH,
     TRANSLATOR_SUPPORTED
 )
-INPUT_PROMPT_TMP = "请输入/拖入项目文件夹，或项目文件夹内的yaml配置文件[default]："
+from GalTransl.i18n import get_text,GT_LANG
+
+
+# Get input prompt based on language
+def get_input_prompt():
+    return get_text("input_project_path", GT_LANG)
 
 
 class ProjectManager:
@@ -19,7 +24,7 @@ class ProjectManager:
 
     def validate_project_path(self, user_input: str) -> tuple[str | None, str | None, str | None]:
         if not user_input or not isinstance(user_input, str):
-            print("输入路径不能为空且必须是字符串类型\n")
+            print(get_text("input_path_empty", GT_LANG))
             return None, None, None
         try:
             user_input = os.path.abspath(user_input)
@@ -31,28 +36,28 @@ class ProjectManager:
                 project_dir = user_input
 
             if not os.path.exists(project_dir):
-                print(f"项目文件夹 {project_dir} 不存在，请检查后重新输入\n")
+                print(get_text("project_folder_not_exist", GT_LANG, project_dir))
                 return None, None, None
 
             config_path = os.path.join(project_dir, config_file_name)
             if not os.path.exists(config_path):
-                print(f"配置文件 {config_path} 不存在，请检查后重新输入\n")
+                print(get_text("config_file_not_exist", GT_LANG, config_path))
                 return None, None, None
 
             if not os.path.isfile(config_path):
-                print(f"配置文件路径 {config_path} 不是一个有效的文件，请检查后重新输入\n")
+                print(get_text("config_file_not_valid", GT_LANG, config_path))
                 return None, None, None
 
             return user_input, project_dir, config_file_name
         except Exception as e:
-            print(f"验证项目路径时发生错误: {str(e)}\n")
+            print(get_text("error_validating_path", GT_LANG, str(e)))
             return None, None, None
 
     def get_user_input(self):
         while True:
-            input_prompt = INPUT_PROMPT_TMP.replace(
+            input_prompt = get_text("input_project_path", GT_LANG).replace(
                 "[default]",
-                f"(留空继续『{self.project_name()}』项目)" if self.project_dir else "",
+                get_text("continue_with_project", GT_LANG, self.project_name()) if self.project_dir else "",
             )
             user_input = input(input_prompt).strip('"') or self.user_input
 
@@ -84,8 +89,9 @@ class ProjectManager:
             else 0
         )
         os.system("")  # 解决cmd的ANSI转义bug
+        translators_dic={x:y[GT_LANG] for x,y in TRANSLATOR_SUPPORTED.items()}
         self.translator = BulletMenu(
-            f"请为『{self.project_name()}』项目选择翻译模板：", TRANSLATOR_SUPPORTED
+            get_text("select_translator",GT_LANG, self.project_name()), translators_dic
         ).run(default_choice)
 
     def project_name(self):
@@ -94,7 +100,7 @@ class ProjectManager:
     def create_shortcut_win(self) -> None:
         try:
             from GalTransl import GALTRANSL_VERSION
-            TEMPLATE = '@echo off\nchcp 65001\nset "CURRENT_PATH=%CD%"\ncd /d "{0}"\n{1} "{2}" {3}\npause\ncd /d "%CURRENT_PATH%"'
+            TEMPLATE = '@echo off\nchcp 65001\nset "CURRENT_PATH=%CD%"\ncd /d "{0}"\nset "GT_LANG={4}"\n{1} "{2}" {3}\npause\ncd /d "%CURRENT_PATH%"'
             run_com = "python.exe " + os.path.basename(__file__)
             program_dir = os.path.dirname(os.path.abspath(__file__))
             shortcut_path = f"{self.project_dir}{os.sep}run_GalTransl_v{GALTRANSL_VERSION}_{self.translator}.bat"
@@ -105,10 +111,10 @@ class ProjectManager:
                 run_com = os.path.basename(sys.executable)
                 program_dir = os.path.dirname(sys.executable)
             with open(shortcut_path, "w", encoding="utf-8") as f:
-                text = TEMPLATE.format(program_dir, run_com, conf_path, self.translator)
+                text = TEMPLATE.format(program_dir, run_com, conf_path, self.translator, GT_LANG)
                 f.write(text)
         except Exception as e:
-            print(f"创建快捷方式时发生错误: {str(e)}\n")
+            print(get_text("error_creating_shortcut", GT_LANG, str(e)))
 
     def run(self):
         # 检查命令行参数
@@ -143,10 +149,10 @@ class ProjectManager:
                 self.project_dir,
                 self.config_file_name,
                 self.translator,
-                show_banner=False,
+                show_banner=False
             )
 
-            print("翻译任务完成，准备重新开始...")
+            print(get_text("translation_completed", GT_LANG))
             self.user_input = ""
             self.translator = ""
 

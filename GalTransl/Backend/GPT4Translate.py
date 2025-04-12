@@ -4,7 +4,8 @@ from opencc import OpenCC
 from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
-from GalTransl import LOGGER, LANG_SUPPORTED,TRANSLATOR_DEFAULT_ENGINE
+from GalTransl import LOGGER, LANG_SUPPORTED, TRANSLATOR_DEFAULT_ENGINE
+from GalTransl.i18n import get_text,GT_LANG
 from sys import exit
 from GalTransl.ConfigHelper import (
     CProjectConfig,
@@ -78,11 +79,11 @@ class CGPT4Translate(BaseTranslate):
             self.source_lang = "ja"
             self.target_lang = "zh-cn"
         if self.source_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的源语言代码：" + self.source_lang)
+            raise ValueError(get_text("invalid_source_language", GT_LANG, self.source_lang))
         else:
             self.source_lang = LANG_SUPPORTED[self.source_lang]
         if self.target_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的目标语言代码：" + self.target_lang)
+            raise ValueError(get_text("invalid_target_language", GT_LANG, self.target_lang))
         else:
             self.target_lang = LANG_SUPPORTED[self.target_lang]
         # 429等待时间
@@ -277,10 +278,10 @@ class CGPT4Translate(BaseTranslate):
                 # LOGGER.info("->输入：\n" + prompt_req + "\n")
                 with logging_redirect_tqdm(loggers=[LOGGER]):
                     LOGGER.info(
-                        f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_json}\n"
+                        get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
                     )
                 if self.streamOutputMode:
-                    LOGGER.info("->输出：")
+                    LOGGER.info(get_text("output", GT_LANG))
                 resp, data = "", ""
                 if self.eng_type != "unoffapi":
                     if not self.full_context_mode:
@@ -298,7 +299,7 @@ class CGPT4Translate(BaseTranslate):
                         resp = data["message"]
 
                 if not self.streamOutputMode:
-                    LOGGER.info(f"->输出：\n{resp}")
+                    LOGGER.info(get_text("output_with_content", GT_LANG, resp))
                 else:
                     print("")
             except asyncio.CancelledError:
@@ -310,25 +311,25 @@ class CGPT4Translate(BaseTranslate):
                 LOGGER.error(f"-> {str_ex}")
                 if "quota" in str_ex:
                     self.tokenProvider.reportTokenProblem(self.token)
-                    LOGGER.error(f"-> [请求错误]余额不足： {self.token.maskToken()}")
+                    LOGGER.error(get_text("request_error_quota", GT_LANG, self.token.maskToken()))
                     self.token = self.tokenProvider.getToken()
                     self.chatbot.set_api_key(self.token.token)
                     self._del_last_answer()
-                    LOGGER.warning(f"-> [请求错误]切换到token {self.token.maskToken()}")
+                    LOGGER.warning(get_text("request_error_switch_token", GT_LANG, self.token.maskToken()))
                     continue
                 elif "try again later" in str_ex or "too many requests" in str_ex:
                     LOGGER.warning(
-                        f"-> [请求错误]请求受限，{self.wait_time}秒后继续尝试"
+                        get_text("request_error_too_many", GT_LANG, self.wait_time)
                     )
                     await asyncio.sleep(self.wait_time)
                     continue
                 elif "try reload" in str_ex:
                     self.reset_conversation()
-                    LOGGER.error("-> [请求错误]报错重置会话")
+                    LOGGER.error(get_text("request_error_reset", GT_LANG))
                     continue
                 else:
                     self._del_last_answer()
-                    LOGGER.info("-> [请求错误]报错:%s, 2秒后重试" % ex)
+                    LOGGER.info(get_text("request_error_retry", GT_LANG, ex))
                     await asyncio.sleep(2)
                     continue
 
@@ -358,7 +359,7 @@ class CGPT4Translate(BaseTranslate):
                     i += 1
                 except:
                     if i == -1:
-                        LOGGER.error("-> 非json：\n" + line + "\n")
+                        LOGGER.error(get_text("non_json_output", GT_LANG, line))
                         error_flag = True
                         break
                     else:
@@ -425,10 +426,10 @@ class CGPT4Translate(BaseTranslate):
                     result_trans_list.append(trans_list[i])
 
             if error_flag:
-                LOGGER.error(f"-> [解析错误]解析结果出错：{error_message}")
+                LOGGER.error(get_text("parse_error", self.target_lang, error_message))
                 if self.skipRetry:
                     self.reset_conversation()
-                    LOGGER.warning("-> [解析错误]解析出错但跳过本轮翻译")
+                    LOGGER.warning(get_text("parse_error_skip", self.target_lang))
                     i = 0 if i < 0 else i
                     while i < len(trans_list):
                         if not proofread:
@@ -463,8 +464,8 @@ class CGPT4Translate(BaseTranslate):
                     LOGGER.warning("-> 单句仍错，重置会话")
                 # 单句5次重试则中止
                 if self.retry_count == 5:
-                    LOGGER.error(f"-> 单句反复出错，已中止。错误为：{error_message}")
-                    raise RuntimeError(f"-> 单句反复出错，最后错误为：{error_message}")
+                    LOGGER.error(get_text("repeated_error", GT_LANG, error_message))
+                    raise RuntimeError(get_text("repeated_error", GT_LANG, error_message))
                 continue
 
             # 翻译完成，收尾
