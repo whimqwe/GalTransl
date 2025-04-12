@@ -389,7 +389,7 @@ class ForGalTranslate(BaseTranslate):
         if self.last_file_name != filename:
             self.reset_conversation()
             self.last_file_name = filename
-            LOGGER.info(f"-> 开始翻译文件：{filename}")
+            #LOGGER.info(f"-> 开始翻译文件：{filename}")
         i = 0
 
         if (
@@ -419,7 +419,7 @@ class ForGalTranslate(BaseTranslate):
                 else trans_list_unhit[i:]
             )
 
-            dic_prompt = gpt_dic.gen_prompt(trans_list_split) if gpt_dic else ""
+            dic_prompt = gpt_dic.gen_prompt(trans_list_split,"tsv") if gpt_dic else ""
 
             num, trans_result = await self.translate(
                 trans_list_split, dic_prompt, proofread=proofread

@@ -141,7 +141,7 @@ class BaseTranslate:
         if self.last_file_name != filename:
             self.reset_conversation()
             self.last_file_name = filename
-            LOGGER.info(f"-> 开始翻译文件：{filename}")
+            #LOGGER.info(f"-> 开始翻译文件：{filename}")
         i = 0
 
         if (
