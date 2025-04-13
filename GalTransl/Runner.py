@@ -78,8 +78,7 @@ async def run_galtransl(cfg: CProjectConfig, translator: str):
         raise Exception(f"不支持的翻译器: {translator}")
 
     # 日志初始化
-    for handler in LOGGER.handlers:
-        LOGGER.removeHandler(handler)
+    LOGGER.handlers.clear()
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(CONSOLE_FORMAT)
     LOGGER.addHandler(handler)
