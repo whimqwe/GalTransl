@@ -14,7 +14,7 @@ from GalTransl.ConfigHelper import CProjectConfig
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import contains_katakana,is_all_chinese,decompress_file_lzma
 from GalTransl.Backend.BaseTranslate import BaseTranslate
-from GalTransl.Backend.Prompts import GENDIC_PROMPT,GENDIC_SYSTEM
+from GalTransl.Backend.Prompts import GENDIC_PROMPT,GENDIC_SYSTEM,H_WORDS_LIST
 import collections
 from typing import List, Set, Dict, Optional
 from threading import Lock
@@ -173,17 +173,22 @@ class GenDic(BaseTranslate):
         for item in self.dic_list:
             if "NULL" in item[0]:
                 continue
+            if item[0] in H_WORDS_LIST:
+                continue
+
             if self.dic_counter[item[0]]>1:
                 final_list.append(item)
             elif "人名" in item[2]:
                 final_list.append(item)
             elif "地名" in item[2]:
                 final_list.append(item)
+            elif item[0] in word_counter:
+                final_list.append(item)
 
         result_path=os.path.join(self.config.getProjectDir(),"项目GPT字典-生成.txt")
 
         with open(result_path, "w", encoding="utf-8") as f:
-            f.write("日文原词\t中文\t备注\n")
+            f.write("# 格式为日文[Tab]中文[Tab]解释(可不写)，参考项目wiki\n")
             for item in final_list:
                 f.write(item[0]+"\t"+item[1]+"\t"+item[2]+"\n")
         LOGGER.info(f"字典生成完成，共{len(final_list)}个词语，保存到{result_path}")

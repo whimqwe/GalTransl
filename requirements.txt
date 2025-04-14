@@ -15,6 +15,7 @@ playsound3
 fasttext-predict
 InquirerPy
 alive-progress
+vaporetto
 
 # Tokenizer
 budoux
