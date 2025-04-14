@@ -80,6 +80,10 @@ TRANSLATOR_SUPPORTED = {
         "zh-cn": "为翻译Gal基于Sakura进一步优化的本地小模型，可运行在6G空闲显存的游戏显卡和MacBook上",
         "en": "Further optimized local small model based on Sakura for Gal translation, can run on gaming GPUs with 6GB VRAM and MacBooks"
     },
+    "GenDic": {
+        "zh-cn": "自动化构建GPT字典，需要接大模型如Deepseek-V3",
+        "en": "Automatically build GPT dictionary, requires a large model, recommended GPT4/Claude-3/Deepseek-V3"
+    },
     "rebuildr": {
         "zh-cn": "重建结果 用译前译后字典通过缓存刷写结果json -- 跳过翻译和写缓存",
         "en": "Rebuild results - Use pre/post translation dictionary to rewrite result json via cache - Skip translation and cache writing"
@@ -103,8 +107,9 @@ TRANSLATOR_DEFAULT_ENGINE = {
     "r1": "deepseek-reasoner",
     "sakura-v1.0": "sakura-7b-qwen2.5-v1.0",
     "galtransl-v3": "Sakura-GalTransl-7B-v3",
+    "GenDic": "deepseek-chat",
 }
-NEED_OpenAITokenPool=["gpt", "r1", "ForGal"]
+NEED_OpenAITokenPool=["gpt", "r1", "ForGal","GenDic"]
 LANG_SUPPORTED = {
     "zh-cn": "Simplified_Chinese",
     "zh-tw": "Traditional_Chinese",

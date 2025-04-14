@@ -92,6 +92,7 @@ dictionary:
   gpt.dict:
     - GPT字典.txt
     - (project_dir)项目GPT字典.txt
+    - (project_dir)项目GPT字典-生成.txt
   # 译后字典
   postDict:
     - 00通用字典_符号_译后.txt # 符号矫正

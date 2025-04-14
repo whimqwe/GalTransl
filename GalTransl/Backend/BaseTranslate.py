@@ -4,7 +4,7 @@ from opencc import OpenCC
 from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
-from GalTransl import LOGGER, LANG_SUPPORTED
+from GalTransl import LOGGER, LANG_SUPPORTED,TRANSLATOR_DEFAULT_ENGINE
 from GalTransl.i18n import get_text,GT_LANG
 from sys import exit
 from GalTransl.ConfigHelper import (
@@ -15,7 +15,8 @@ from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes
-
+from openai import OpenAI
+import re
 
 
 class BaseTranslate:
@@ -95,11 +96,44 @@ class BaseTranslate:
 
         pass
 
-    def init_chatbot(self, eng_type, config):
+    def init_chatbot(self, eng_type, config: CProjectConfig):
+        section_name = "OpenAI-Compatible"
+        self.model_name = config.getBackendConfigSection(section_name).get(
+            "rewriteModelName", TRANSLATOR_DEFAULT_ENGINE[eng_type]
+        )
+        self.token = self.tokenProvider.getToken()
+        base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
+        self.chatbot= OpenAI(
+            api_key=self.token.token,
+            base_url=f"{self.token.domain}{base_path}",
+            max_retries=0, 
+        )
         pass
 
-    def ask_chatbot(self, prompt, stream=False):
-        pass
+    def ask_chatbot(self, prompt,system=""):
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                response = self.chatbot.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": prompt},
+                    ],
+                    stream=False
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                retry_count += 1
+                traceback.print_exc()
+                LOGGER.error(f"Error: {e}")
+                if retry_count >= max_retries:
+                    LOGGER.error(f"Failed after {max_retries} retries")
+                    return ""
+                LOGGER.info(f"Retrying... ({retry_count}/{max_retries})")
+                time.sleep(1)  # 短暂等待后重试
 
     
 
