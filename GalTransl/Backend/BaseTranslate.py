@@ -15,7 +15,7 @@ from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes
-from openai import OpenAI
+from openai import OpenAI,RateLimitError
 import re
 
 
@@ -125,6 +125,9 @@ class BaseTranslate:
                     stream=False
                 )
                 return response.choices[0].message.content
+            except RateLimitError as e:
+                LOGGER.debug(f"请求频率限制: {e}, 10秒后重试")
+                time.sleep(10)
             except Exception as e:
                 retry_count += 1
                 traceback.print_exc()
