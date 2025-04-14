@@ -140,10 +140,8 @@ class CGPT4Translate(BaseTranslate):
         pass
 
     def init_chatbot(self, eng_type, config):
-        if "GPT4" in config.projectConfig["backendSpecific"]:  # 兼容旧版
-            section_name = "GPT4"
-        else:
-            section_name = "OpenAI-Compatible"
+
+        section_name = "OpenAI-Compatible"
         eng_name = config.getBackendConfigSection(section_name).get(
             "rewriteModelName", TRANSLATOR_DEFAULT_ENGINE[eng_type]
         )

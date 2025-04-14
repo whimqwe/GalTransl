@@ -65,6 +65,63 @@ def contains_japanese(text: str) -> bool:
             return True
     return False
 
+def contains_katakana(text: str) -> bool:
+    # 日文字符范围
+    katakana_range = (0x30A0, 0x30FF)
+
+    # 检查字符串中的每个字符
+    for char in text:
+        # 排除ー
+        if char in ["ー", "・"]:
+            continue
+        # 获取字符的 Unicode 码点
+        code_point = ord(char)
+        # 检查字符是否在日文字符范围内
+        if katakana_range[0] <= code_point <= katakana_range[1]:
+            return True
+    return False
+
+def is_all_chinese(text: str) -> bool:
+    """
+    此函数接受一个字符串作为输入，检查其中是否 *全部* 都是中文字符 (汉字)。
+    (使用循环检查每个字符)
+
+    参数:
+    - text: 要检查的字符串。
+
+    返回值:
+    - 如果字符串中的 *所有* 字符都是中文字符，则返回 True，否则返回 False。
+      如果字符串为空，则返回 False。
+    """
+    if not text:
+        return False
+
+    # 定义中文字符的 Unicode 范围
+    cjk_unified_range = (0x4E00, 0x9FFF)
+    cjk_extension_a_range = (0x3400, 0x4DBF)
+    cjk_compatibility_range = (0xF900, 0xFAFF)
+    # 添加更多扩展区... (注意：大于 0xFFFF 的码点需要特殊处理或 Python 3.3+ 支持)
+    # cjk_extension_b_range = (0x20000, 0x2A6DF)
+
+    for char in text:
+        code_point = ord(char)
+
+        # 检查字符 *是否在* 任何一个定义的中文范围内
+        is_chinese = (
+            (cjk_unified_range[0] <= code_point <= cjk_unified_range[1]) or
+            (cjk_extension_a_range[0] <= code_point <= cjk_extension_a_range[1]) or
+            (cjk_compatibility_range[0] <= code_point <= cjk_compatibility_range[1])
+            # Add checks for other ranges here if needed, e.g.:
+            # or (cjk_extension_b_range[0] <= code_point <= cjk_extension_b_range[1])
+        )
+
+        # 如果当前字符 *不是* 中文字符，则整个字符串不满足条件，立即返回 False
+        if not is_chinese:
+            return False
+
+    # 如果循环正常结束，说明所有字符都是中文字符
+    return True
+
 def contains_english(text: str) -> bool:
     """
     此函数接受一个字符串作为输入，检查其中是否包含英文字符。
@@ -180,5 +237,37 @@ def find_most_repeated_substring(text):
 
     return max_substring, max_count
 
+def decompress_file_lzma(input_filepath, output_filepath=None):
+    """
+    解压缩使用 LZMA 算法压缩的单个文件。
+
+    Args:
+        input_filepath (str): 要解压缩的输入文件路径 (通常以 '.xz' 结尾)。
+        output_filepath (str, optional): 解压缩后的输出文件路径。
+                                         如果为 None，则移除输入文件名中的 '.xz'。
+    """
+    import lzma
+    if output_filepath is None:
+        if input_filepath.endswith('.xz'):
+            output_filepath = input_filepath[:-3]
+        else:
+            print("错误: 输入文件名不以 '.xz' 结尾，无法自动确定输出文件名。请指定 output_filepath。")
+            return
+
+    try:
+        with lzma.open(input_filepath, 'rb') as f_in, open(output_filepath, 'wb') as f_out:
+            while True:
+                chunk = f_in.read(4096)
+                if not chunk:
+                    break
+                f_out.write(chunk)
+        #print(f"文件 '{input_filepath}' 已成功解压缩为 '{output_filepath}'")
+    except FileNotFoundError:
+        print(f"错误: 文件 '{input_filepath}' 未找到。")
+    except Exception as e:
+        print(f"解压缩文件时发生错误: {e}")
+
 if __name__ == '__main__':
     print(contains_english("機密レベルＡＡ以上のファイルを一覧"))
+
+

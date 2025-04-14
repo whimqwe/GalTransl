@@ -1,10 +1,6 @@
 from typing import List, Dict, Any, Optional, Union, Tuple
-from os import makedirs,cpu_count, sep as os_sep
-from os.path import (
-    join as joinpath,
-    exists as isPathExists,
-    dirname
-)
+from os import makedirs, cpu_count, sep as os_sep
+from os.path import join as joinpath, exists as isPathExists, dirname
 from tqdm.asyncio import tqdm as atqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
@@ -12,10 +8,9 @@ from time import time
 import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
-from GalTransl.i18n import get_text,GT_LANG
+from GalTransl.i18n import get_text, GT_LANG
 
 
-from GalTransl.Backend.RebuildTranslate import CRebuildTranslate
 from GalTransl.ConfigHelper import initDictList, CProjectConfig
 from GalTransl.Dictionary import CGptDict, CNormalDic
 from GalTransl.Problem import find_problems
@@ -25,7 +20,11 @@ from GalTransl.CSerialize import update_json_with_transList, save_json
 from GalTransl.Dictionary import CNormalDic, CGptDict
 from GalTransl.ConfigHelper import CProjectConfig, initDictList
 from GalTransl.Utils import get_file_list
-from GalTransl.CSplitter import SplitChunkMetadata, DictionaryCombiner
+from GalTransl.CSplitter import (
+    SplitChunkMetadata,
+    DictionaryCombiner,
+    EqualPartsSplitter,
+)
 
 
 async def doLLMTranslate(
@@ -79,14 +78,19 @@ async def doLLMTranslate(
     file_list = get_file_list(projectConfig.getInputPath())
     if not file_list:
         raise RuntimeError(f"{projectConfig.getInputPath()}中没有待翻译的文件")
-    
+
     # 按文件名自然排序（处理数字部分）
     import re
+
     def natural_sort_key(s):
-        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
-    
+        return [
+            int(text) if text.isdigit() else text.lower()
+            for text in re.split(r"(\d+)", s)
+        ]
+
     file_list.sort(key=natural_sort_key)
-    
+
+    all_jsons = []
     # 读取所有文件获得total_chunks列表
     with ThreadPoolExecutor(max_workers=cpu_count()) as executor:
         future_to_file = {
@@ -101,13 +105,22 @@ async def doLLMTranslate(
                     json_list, save_func = future.result()
                     projectConfig.file_save_funcs[file_path] = save_func
                     total_chunks.extend(input_splitter.split(json_list, file_path))
+                    if eng_type == "GenDic":
+                        all_jsons.extend(json_list)
                 except Exception as exc:
-                    LOGGER.error(get_text("file_processing_error", GT_LANG, file_path, exc))
+                    LOGGER.error(
+                        get_text("file_processing_error", GT_LANG, file_path, exc)
+                    )
                 finally:
                     pbar.update(1)
 
     if "dump-name" in eng_type:
         dump_name_table_from_chunks(total_chunks, projectConfig)
+        return True
+
+    if eng_type == "GenDic":
+        gptapi = await init_gptapi(projectConfig)
+        await gptapi.batch_translate(all_jsons)
         return True
 
     progress_bar = atqdm(
@@ -130,29 +143,28 @@ async def doLLMTranslate(
             LOGGER.error(get_text("task_execution_failed", GT_LANG, e))
             return None
 
-    soryBy=projectConfig.getKey("sortBy","name")
-    if soryBy=="name":
+    soryBy = projectConfig.getKey("sortBy", "name")
+    if soryBy == "name":
         # 按文件分组chunks，保持文件内部的顺序
         file_chunks = {}
         for chunk in total_chunks:
             if chunk.file_path not in file_chunks:
                 file_chunks[chunk.file_path] = []
             file_chunks[chunk.file_path].append(chunk)
-        
+
         # 确保每个文件内的chunks按索引排序
         for file_path in file_chunks:
             file_chunks[file_path].sort(key=lambda x: x.chunk_index)
-        
+
         # 按照file_list的顺序处理文件，保持文件间的顺序
         ordered_chunks = []
         for file_path in file_list:
             if file_path in file_chunks:
                 ordered_chunks.extend(file_chunks[file_path])
-    elif soryBy=="size":
+    elif soryBy == "size":
         total_chunks.sort(key=lambda x: x.chunk_size, reverse=True)
         ordered_chunks = total_chunks
-        
-    
+
     # 创建所有任务
     all_tasks = []
     for chunk in ordered_chunks:
@@ -163,10 +175,10 @@ async def doLLMTranslate(
                 projectConfig=projectConfig,
             )
         )
-    
+
     # 使用信号量控制并发数量，同时启动所有任务
     await asyncio.gather(*[run_task(task) for task in all_tasks])
-    
+
     progress_bar.close()
 
 
@@ -203,7 +215,7 @@ async def doLLMTranslSingleChunk(
         )
         print("\n", flush=True)
         part_info = f" (part {file_index+1}/{total_splits})" if total_splits > 1 else ""
-        #LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
+        # LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
 
         gptapi = await init_gptapi(projectConfig)
 
@@ -220,9 +232,14 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.before_src_processed(tran)
                 except Exception as e:
-                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
+                    LOGGER.error(
+                        get_text("plugin_execution_failed", GT_LANG, plugin.name, e)
+                    )
 
-            if projectConfig.getFilePlugin() in ["file_galtransl_json","file_mtbench_chrf"]:
+            if projectConfig.getFilePlugin() in [
+                "file_galtransl_json",
+                "file_mtbench_chrf",
+            ]:
                 tran.analyse_dialogue()
             tran.post_jp = pre_dic.do_replace(tran.post_jp, tran)
             if projectConfig.getDictCfgSection("usePreDictInName"):
@@ -232,7 +249,9 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.after_src_processed(tran)
                 except Exception as e:
-                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
+                    LOGGER.error(
+                        get_text("plugin_execution_failed", GT_LANG, plugin.name, e)
+                    )
 
         # 执行翻译
         await gptapi.batch_translate(
@@ -289,10 +308,16 @@ async def doLLMTranslSingleChunk(
                 try:
                     tran = plugin.plugin_object.after_dst_processed(tran)
                 except Exception as e:
-                    LOGGER.error(get_text("plugin_execution_failed", GT_LANG, plugin.name, e))
+                    LOGGER.error(
+                        get_text("plugin_execution_failed", GT_LANG, plugin.name, e)
+                    )
 
         et = time()
-        LOGGER.info(get_text("file_translation_completed", GT_LANG, file_name, part_info, et-st))
+        LOGGER.info(
+            get_text(
+                "file_translation_completed", GT_LANG, file_name, part_info, et - st
+            )
+        )
         gptapi.clean_up()
 
         split_chunk.update_file_finished_chunk()
@@ -371,18 +396,27 @@ async def init_gptapi(
     match eng_type:
         case "ForGal":
             from GalTransl.Backend.ForGalTranslate import ForGalTranslate
+
             return ForGalTranslate(projectConfig, eng_type, proxyPool, tokenPool)
         case "gpt4" | "gpt4-turbo" | "r1":
             from GalTransl.Backend.GPT4Translate import CGPT4Translate
+
             return CGPT4Translate(projectConfig, eng_type, proxyPool, tokenPool)
         case "sakura-009" | "sakura-v1.0" | "galtransl-v2.5" | "galtransl-v3":
             from GalTransl.Backend.SakuraTranslate import CSakuraTranslate
+
             sakura_endpoint = await sakuraEndpointQueue.get()
             if sakuraEndpointQueue is None:
                 raise ValueError(f"Endpoint is required for engine type {eng_type}")
             return CSakuraTranslate(projectConfig, eng_type, sakura_endpoint, proxyPool)
         case "rebuildr" | "rebuilda" | "dump-name":
+            from GalTransl.Backend.RebuildTranslate import CRebuildTranslate
+
             return CRebuildTranslate(projectConfig, eng_type)
+        case "GenDic":
+            from GalTransl.Backend.GenDic import GenDic
+
+            return GenDic(projectConfig, eng_type, proxyPool, tokenPool)
         case _:
             raise ValueError(f"不支持的翻译引擎类型 {eng_type}")
 
