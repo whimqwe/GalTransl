@@ -249,17 +249,23 @@ class ForGalTranslate(BaseTranslate):
 
             result_text = resp
 
+            result_text=result_text[result_text.find("ID\t"):]
+
             i = -1
             result_trans_list = []
             result_lines = result_text.splitlines()
             error_flag = False
             error_message = ""
             for line in result_lines:
+                if "```" in line:
+                    continue
+
                 line_sp = line.split("\t")
                 if len(line_sp) != 3:
                     error_message = f"第{line}句无法解析"
                     error_flag = True
                     break
+
                 if "ID" in line_sp[0]:
                     continue
 

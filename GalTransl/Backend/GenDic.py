@@ -139,7 +139,7 @@ class GenDic(BaseTranslate):
         # 取前100个
         index_list=index_list[:100]
         LOGGER.info(f"启动{self.wokers}个工作线程，共{len(index_list)}个任务" )
-        with alive_bar(total=len(index_list),title="生成字典……") as bar:
+        with alive_bar(total=len(index_list),title=f"{self.wokers}线程生成字典中……") as bar:
             # 定义工作函数
             def process_item(idx):
                 try:

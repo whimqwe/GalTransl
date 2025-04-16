@@ -4,8 +4,8 @@ from opencc import OpenCC
 from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
-from GalTransl import LOGGER, LANG_SUPPORTED,TRANSLATOR_DEFAULT_ENGINE
-from GalTransl.i18n import get_text,GT_LANG
+from GalTransl import LOGGER, LANG_SUPPORTED, TRANSLATOR_DEFAULT_ENGINE
+from GalTransl.i18n import get_text, GT_LANG
 from sys import exit
 from GalTransl.ConfigHelper import (
     CProjectConfig,
@@ -15,7 +15,7 @@ from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes
-from openai import OpenAI,RateLimitError
+from openai import OpenAI, RateLimitError
 import re
 
 
@@ -59,23 +59,27 @@ class BaseTranslate:
             self.source_lang = "ja"
             self.target_lang = "zh-cn"
         if self.source_lang not in LANG_SUPPORTED.keys():
-            raise ValueError(get_text("invalid_source_language", self.target_lang, self.source_lang))
+            raise ValueError(
+                get_text("invalid_source_language", self.target_lang, self.source_lang)
+            )
         else:
             self.source_lang = LANG_SUPPORTED[self.source_lang]
         if self.target_lang not in LANG_SUPPORTED.keys():
-            raise ValueError(get_text("invalid_target_language", self.target_lang, self.target_lang))
+            raise ValueError(
+                get_text("invalid_target_language", self.target_lang, self.target_lang)
+            )
         else:
             self.target_lang = LANG_SUPPORTED[self.target_lang]
 
         # 429等待时间
-        self.wait_time = config.getKey("gpt.tooManyRequestsWaitTime",60)
+        self.wait_time = config.getKey("gpt.tooManyRequestsWaitTime", 60)
         # 跳过重试
-        self.skipRetry = config.getKey("skipRetry",False)
+        self.skipRetry = config.getKey("skipRetry", False)
         # 跳过h
-        self.skipH = config.getKey("skipH",False)
+        self.skipH = config.getKey("skipH", False)
 
         # 流式输出模式
-        self.streamOutputMode = config.getKey("gpt.streamOutputMode",False)
+        self.streamOutputMode = config.getKey("gpt.streamOutputMode", False)
         if config.getKey("workersPerProject") > 1:  # 多线程关闭流式输出
             self.streamOutputMode = False
 
@@ -103,42 +107,33 @@ class BaseTranslate:
         )
         self.token = self.tokenProvider.getToken()
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
-        self.chatbot= OpenAI(
+        self.chatbot = OpenAI(
             api_key=self.token.token,
             base_url=f"{self.token.domain}{base_path}",
-            max_retries=0, 
+            max_retries=0,
         )
         pass
 
-    def ask_chatbot(self, prompt,system=""):
-        max_retries = 3
+    def ask_chatbot(self, prompt="", system="", messages=[]):
         retry_count = 0
-        
-        while retry_count < max_retries:
+        while True:
             try:
-                response = self.chatbot.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
+                if messages == []:
+                    messages = [
                         {"role": "system", "content": system},
                         {"role": "user", "content": prompt},
-                    ],
-                    stream=False
+                    ]
+                response = self.chatbot.chat.completions.create(
+                    model=self.model_name, messages=messages, stream=False
                 )
                 return response.choices[0].message.content
             except RateLimitError as e:
-                LOGGER.debug(f"请求频率限制: {e}, 10秒后重试")
-                time.sleep(10)
+                LOGGER.debug(f"[频率限制] {e}")
+                time.sleep(3)
             except Exception as e:
                 retry_count += 1
-                traceback.print_exc()
-                LOGGER.error(f"Error: {e}")
-                if retry_count >= max_retries:
-                    LOGGER.error(f"Failed after {max_retries} retries")
-                    return ""
-                LOGGER.info(f"Retrying... ({retry_count}/{max_retries})")
-                time.sleep(1)  # 短暂等待后重试
-
-    
+                LOGGER.error(f"[API Error] {e}")
+                time.sleep(1)
 
     def clean_up(self):
         pass
@@ -179,7 +174,7 @@ class BaseTranslate:
         if self.last_file_name != filename:
             self.reset_conversation()
             self.last_file_name = filename
-            #LOGGER.info(f"-> 开始翻译文件：{filename}")
+            # LOGGER.info(f"-> 开始翻译文件：{filename}")
         i = 0
 
         if (
