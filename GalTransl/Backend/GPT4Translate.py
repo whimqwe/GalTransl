@@ -153,10 +153,9 @@ class CGPT4Translate(BaseTranslate):
 
         try:
             change_prompt = CProjectConfig.getProjectConfig(config)['common']['gpt.change_prompt']
-            prompt_type = CProjectConfig.getProjectConfig(config)['common']['gpt.prompt_type']
             prompt_content = CProjectConfig.getProjectConfig(config)['common']['gpt.prompt_content']
 
-            if change_prompt and prompt_type == "AdditionalPrompt":
+            if change_prompt == "AdditionalPrompt":
                 system_prompt = GPT4Turbo_SYSTEM_PROMPT
                 trans_prompt = GPT4Turbo_TRANS_PROMPT + "\n# Additional Requirements: " + prompt_content
                 proofread_prompt = GPT4Turbo_PROOFREAD_PROMPT
@@ -166,7 +165,7 @@ class CGPT4Translate(BaseTranslate):
                     trans_prompt = DEEPSEEK_TRANS_PROMPT + prompt_content
                     proofread_prompt = DEEPSEEK_PROOFREAD_PROMPT
 
-            elif change_prompt and prompt_type == "OverwritePrompt":
+            elif change_prompt == "OverwritePrompt":
                 system_prompt = GPT4Turbo_SYSTEM_PROMPT
                 trans_prompt = prompt_content
                 proofread_prompt = GPT4Turbo_PROOFREAD_PROMPT
@@ -519,14 +518,7 @@ class CGPT4Translate(BaseTranslate):
         trans_result_list = []
         len_trans_list = len(trans_list_unhit)
         transl_step_count = 0
-        progress_bar = atqdm(
-            total=len_trans_list,
-            desc=f"Translating {filename}",
-            unit="line",
-            dynamic_ncols=True,
-            leave=False,
-            file=stdout,
-        )
+
         while i < len_trans_list:
             #await asyncio.sleep(1)
             trans_list_split = (
@@ -552,12 +544,12 @@ class CGPT4Translate(BaseTranslate):
             if transl_step_count >= self.save_steps:
                 save_transCache_to_json(trans_list, cache_file_path)
                 transl_step_count = 0
-            progress_bar.update(num)
+
             LOGGER.info(
                 f"{filename}: {str(len(trans_result_list))}/{str(len_trans_list)}"
             )
 
-        progress_bar.close()
+
         return trans_result_list
 
     def reset_conversation(self):

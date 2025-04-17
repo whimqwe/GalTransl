@@ -198,22 +198,21 @@ async def run_galtransl(cfg: CProjectConfig, translator: str):
             f"\033[32m更新地址：https://github.com/xd2333/GalTransl/releases\033[0m"
         )
 
-    if project_conf.get("splitFile", False):
+    if val:=project_conf.get("splitFile", "no") in ["Num","Equal"]:
         splitFileNum = int(project_conf.get("splitFileNum", -1))
         cross_num = int(project_conf.get("splitFileCrossNum", 0))
         if "dump-name" in translator:  # 提取人名表时不交叉
             cross_num = 0
         if splitFileNum == -1:
             splitFileNum = int(project_conf.get("workersPerProject", -1))
-        splitFileMethod = project_conf.get("splitFileMethod", "EqualPartsSplitter")
-        if splitFileMethod == "DictionaryCountSplitter":
+
+        if val == "Num":
             assert splitFileNum > 10, "DictionaryCountSplitter下分割数量必须大于10"
             input_splitter = DictionaryCountSplitter(splitFileNum, cross_num)
-        elif splitFileMethod == "EqualPartsSplitter":
+        elif val == "Equal":
             input_splitter = EqualPartsSplitter(splitFileNum, cross_num)
         else:
-            raise Exception(f"不支持的分割方法: {splitFileMethod}")
-
+            raise Exception(f"不支持的分割方法: {val}")
         # 默认的输出合并器
         output_combiner = DictionaryCombiner()
     else:

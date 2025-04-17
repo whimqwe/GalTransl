@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional, Union, Tuple
 from os import makedirs, cpu_count, sep as os_sep
 from os.path import join as joinpath, exists as isPathExists, dirname
-from tqdm.asyncio import tqdm as atqdm
+from alive_progress import alive_bar
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from time import time
@@ -128,21 +128,10 @@ async def doLLMTranslate(
         await gptapi.batch_translate(all_jsons)
         return True
 
-    progress_bar = atqdm(
-        total=len(total_chunks),
-        desc="Processing chunks/files",
-        dynamic_ncols=True,
-        leave=False,
-    )
 
     async def run_task(task_func):
         try:
             result = await task_func
-            progress_bar.update(1)
-            # progress_bar.set_postfix(
-            #     file=result[3].split(os_sep)[-1],
-            #     chunk=f"{result[4].start_index}-{result[4].end_index}",
-            # )
             return result
         except Exception as e:
             LOGGER.error(get_text("task_execution_failed", GT_LANG, e))
@@ -169,22 +158,25 @@ async def doLLMTranslate(
     elif soryBy == "size":
         total_chunks.sort(key=lambda x: x.chunk_size, reverse=True)
         ordered_chunks = total_chunks
+    
+    total_lines=sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
-    # 创建所有任务
-    all_tasks = []
-    for chunk in ordered_chunks:
-        all_tasks.append(
-            doLLMTranslSingleChunk(
-                semaphore,
-                split_chunk=chunk,
-                projectConfig=projectConfig,
+    with alive_bar(total=total_lines, title="翻译进度", dual_line=True) as bar:
+        projectConfig.bar=bar
+        # 创建所有任务
+        all_tasks = []
+        for chunk in ordered_chunks:
+            all_tasks.append(
+                doLLMTranslSingleChunk(
+                    semaphore,
+                    split_chunk=chunk,
+                    projectConfig=projectConfig,
+                )
             )
-        )
 
-    # 使用信号量控制并发数量，同时启动所有任务
-    await asyncio.gather(*[run_task(task) for task in all_tasks])
+        # 使用信号量控制并发数量，同时启动所有任务
+        await asyncio.gather(*[run_task(task) for task in all_tasks])
 
-    progress_bar.close()
 
 
 async def doLLMTranslSingleChunk(

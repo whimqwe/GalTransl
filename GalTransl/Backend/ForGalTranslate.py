@@ -40,6 +40,7 @@ class ForGalTranslate(BaseTranslate):
         Returns:
             None
         """
+        self.pj_config=config
         self.eng_type = eng_type
         self.last_file_name = ""
         self.restore_context_mode = config.getKey("gpt.restoreContextMode")
@@ -98,14 +99,8 @@ class ForGalTranslate(BaseTranslate):
             self.enhance_jailbreak = val
         else:
             self.enhance_jailbreak = False
-        # 流式输出模式
-        if val := config.getKey("gpt.streamOutputMode"):
-            self.streamOutputMode = val
-        else:
-            self.streamOutputMode = False
-        if val := config.getKey("workersPerProject"):  # 多线程关闭流式输出
-            if val > 1:
-                self.streamOutputMode = False
+
+        self.streamOutputMode = False
 
         self.tokenProvider = token_pool
         if config.getKey("internals.enableProxy") == True:
@@ -195,11 +190,10 @@ class ForGalTranslate(BaseTranslate):
                 self.chatbot.set_api_addr(
                     f"{self.token.domain}{base_path}/chat/completions"
                 )
-                # LOGGER.info("->输入：\n" + prompt_req + "\n")
-                with logging_redirect_tqdm(loggers=[LOGGER]):
-                    LOGGER.info(
-                        f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
-                    )
+
+                # LOGGER.info(
+                #     f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
+                # )
                 if self.streamOutputMode:
                     LOGGER.info("->输出：")
                 resp, data = "", ""
@@ -212,10 +206,7 @@ class ForGalTranslate(BaseTranslate):
                         print(data, end="", flush=True)
                     resp += data
 
-                if not self.streamOutputMode:
-                    LOGGER.info(f"->输出：\n{resp}")
-                else:
-                    print("")
+
             except asyncio.CancelledError:
                 raise
             except RuntimeError:
@@ -248,8 +239,7 @@ class ForGalTranslate(BaseTranslate):
                     continue
 
             result_text = resp
-
-            result_text=result_text[result_text.find("ID\t"):]
+            result_text=result_text.split("ID\tNAME\tDST")[-1].strip()
 
             i = -1
             result_trans_list = []
@@ -262,7 +252,7 @@ class ForGalTranslate(BaseTranslate):
 
                 line_sp = line.split("\t")
                 if len(line_sp) != 3:
-                    error_message = f"第{line}句无法解析"
+                    error_message = f"无法解析行：{line}"
                     error_flag = True
                     break
 
@@ -415,14 +405,7 @@ class ForGalTranslate(BaseTranslate):
         trans_result_list = []
         len_trans_list = len(trans_list_unhit)
         transl_step_count = 0
-        progress_bar = atqdm(
-            total=len_trans_list,
-            desc=f"Translating {filename}",
-            unit="line",
-            dynamic_ncols=True,
-            leave=False,
-            file=stdout,
-        )
+
         while i < len_trans_list:
             await asyncio.sleep(1)
             trans_list_split = (
@@ -439,6 +422,7 @@ class ForGalTranslate(BaseTranslate):
 
             if num > 0:
                 i += num
+            self.pj_config.bar(num)
             result_output = ""
             for trans in trans_result:
                 result_output = result_output + repr(trans)
@@ -448,13 +432,11 @@ class ForGalTranslate(BaseTranslate):
             if transl_step_count >= self.save_steps:
                 save_transCache_to_json(trans_list, cache_file_path)
                 transl_step_count = 0
-            progress_bar.update(num)
             print("\n", flush=True)
             LOGGER.info(
                 f"{filename}: {str(len(trans_result_list))}/{str(len_trans_list)}"
             )
 
-        progress_bar.close()
         return trans_result_list
 
     def reset_conversation(self):

@@ -22,8 +22,7 @@ common:
   language: "ja2zh-cn" # Source language 2(to) target language. [zh-cn/zh-tw/en/ja/ko/ru/fr]
 
   # Single file splitting settings (※Important: Do not modify during translation, otherwise cache will be invalidated)
-  splitFile: false # Whether to enable single file splitting. [True/False]
-  splitFileMethod: "DictionaryCountSplitter" # Splitting method, EqualPartsSplitter for equal parts, DictionaryCountSplitter for specified number of sentences. [EqualPartsSplitter/DictionaryCountSplitter]
+  splitFile: "no" # Whether to enable single file splitting, Num for splitting every n sentences, Equal for splitting into n equal parts. [no/Num/Equal]
   splitFileNum: 200 # For equal parts, split file into n parts; for sentence count, split every n sentences, recommended > 100
   splitFileCrossNum: 0 # Overlap n sentences when splitting files, may improve translation quality at connection points [recommended 0 or 10].
 
