@@ -41,7 +41,7 @@ class GenDic(BaseTranslate):
     async def llm_gen_dic(self,text:str):
         prompt=GENDIC_PROMPT.format(input=text)
         rsp=self.ask_chatbot(prompt,GENDIC_SYSTEM)
-        print(rsp)
+        #print(rsp)
         lines=rsp.split("\n")
 
         for line in lines:
@@ -56,10 +56,14 @@ class GenDic(BaseTranslate):
             with self.counter_lock:
                 if src in self.dic_counter:
                     self.dic_counter[src]+=1
+                    if self.dic_counter[src]==2:
+                        print(f"{src}\t{dst}\t{note}")
                 else:
                     self.dic_counter[src]=1
                     with self.list_lock:
                         self.dic_list.append([src,dst,note])
+
+                    
 
 
     async def batch_translate(

@@ -193,15 +193,15 @@ class ForGalTranslate(BaseTranslate):
                 #     f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
                 # )
                 if self.streamOutputMode:
-                    LOGGER.info("->输出：")
+                    LOGGER.debug("->输出：")
                 resp, data = "", ""
 
                 self._del_previous_message()
                 async for data in self.chatbot.ask_stream_async(
                     prompt_req, assistant_prompt=assistant_prompt
                 ):
-                    if self.streamOutputMode:
-                        print(data, end="", flush=True)
+                    # if self.streamOutputMode:
+                    #     print(data, end="", flush=True)
                     resp += data
 
 
@@ -432,7 +432,7 @@ class ForGalTranslate(BaseTranslate):
             if transl_step_count >= self.save_steps:
                 save_transCache_to_json(trans_list, cache_file_path)
                 transl_step_count = 0
-            print("\n", flush=True)
+
             LOGGER.info(
                 f"{filename}: {str(len(trans_result_list))}/{str(len_trans_list)}"
             )

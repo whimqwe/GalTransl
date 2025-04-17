@@ -221,7 +221,6 @@ class CSakuraTranslate(BaseTranslate):
             try:
 
                 LOGGER.debug("->输入：\n" + gptdict + "\n" + repr(input_str))
-                print("\n", flush=True)
                 resp = ""
                 last_data = ""
                 repetition_cnt = 0
@@ -435,9 +434,11 @@ class CSakuraTranslate(BaseTranslate):
                 transl_step_count = 0
 
             trans_result_list += trans_result
-            print("\n", flush=True)
-            LOGGER.info("".join([repr(tran) for tran in trans_result]))
 
+            LOGGER.info("".join([repr(tran) for tran in trans_result]))
+            LOGGER.info(
+                f"{filename}: {str(len(trans_result_list))}/{str(len_trans_list)}"
+            )
 
         return trans_result_list
 

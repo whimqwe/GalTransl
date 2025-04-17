@@ -206,7 +206,6 @@ async def doLLMTranslSingleChunk(
             cache_dir,
             file_name + (f"_{file_index}" if total_splits > 1 else ""),
         )
-        print("\n", flush=True)
         part_info = f" (part {file_index+1}/{total_splits})" if total_splits > 1 else ""
         # LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
 
