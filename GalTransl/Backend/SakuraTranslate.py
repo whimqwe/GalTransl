@@ -114,7 +114,7 @@ class CSakuraTranslate(BaseTranslate):
     def init_chatbot(self, eng_type, config: CProjectConfig):
         from GalTransl.Backend.revChatGPT.V3 import Chatbot as ChatbotV3
 
-        backendSpecific = config.pj_config["backendSpecific"]
+        backendSpecific = config.projectConfig["backendSpecific"]
         section_name = "SakuraLLM" if "SakuraLLM" in backendSpecific else "Sakura"
         endpoint = self.endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -434,10 +434,9 @@ class CSakuraTranslate(BaseTranslate):
                 transl_step_count = 0
 
             trans_result_list += trans_result
-            progress_bar.update(num)
             print("\n", flush=True)
             LOGGER.info("".join([repr(tran) for tran in trans_result]))
-        progress_bar.close()
+
 
         return trans_result_list
 
