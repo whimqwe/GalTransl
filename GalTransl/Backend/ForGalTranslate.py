@@ -81,7 +81,6 @@ class ForGalTranslate(BaseTranslate):
             resp = ""
             resp=self.ask_chatbot(messages=messages)
 
-            resp="test"
             result_text = resp
             result_text=result_text.split("ID\tNAME\tDST")[-1].strip()
 

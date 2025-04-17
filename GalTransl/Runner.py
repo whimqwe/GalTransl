@@ -198,7 +198,8 @@ async def run_galtransl(cfg: CProjectConfig, translator: str):
             f"\033[32m更新地址：https://github.com/xd2333/GalTransl/releases\033[0m"
         )
 
-    if val:=project_conf.get("splitFile", "no") in ["Num","Equal"]:
+    if project_conf.get("splitFile", "no") in ["Num","Equal"]:
+        val = project_conf.get("splitFile", "no")
         splitFileNum = int(project_conf.get("splitFileNum", -1))
         cross_num = int(project_conf.get("splitFileCrossNum", 0))
         if "dump-name" in translator:  # 提取人名表时不交叉
