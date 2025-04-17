@@ -232,7 +232,8 @@ class CSakuraTranslate(BaseTranslate):
                 async for data in ask_stream:
                     token_count += 1
                     if self.streamOutputMode:
-                        print(data, end="", flush=True)
+                        #print(data, end="", flush=True)
+                        pass
                     resp += data
                     # 检测是否反复重复输出同一内容，如果超过一定次数，则判定为退化并打断。
                     if token_count % 4 == 0:  # 每4个token检测一次
@@ -243,10 +244,10 @@ class CSakuraTranslate(BaseTranslate):
                 if not degen_flag:  # 结束时再检测一次
                     degen_flag = self.check_degen_in_process(resp)
                 # print(data, end="\n")
-                if not self.streamOutputMode:
-                    LOGGER.info("->输出：\n" + repr(resp))
-                else:
-                    print("")
+                # if not self.streamOutputMode:
+                #     LOGGER.info("->输出：\n" + repr(resp))
+                # else:
+                #     print("")
             except asyncio.CancelledError:
                 raise
             except Exception as ex:
