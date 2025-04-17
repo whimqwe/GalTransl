@@ -369,7 +369,7 @@ class ForGalTranslate(BaseTranslate):
         proofread: bool = False,
         retran_key: str = "",
     ) -> CTransList:
-        _, trans_list_unhit = get_transCache_from_json_new(
+        translist_hit, trans_list_unhit = get_transCache_from_json_new(
             trans_list,
             cache_file_path,
             retry_failed=retry_failed,
@@ -384,6 +384,8 @@ class ForGalTranslate(BaseTranslate):
                 for tran in trans_list_unhit
                 if not any(word in tran.post_jp for word in H_WORDS_LIST)
             ]
+        
+        self.pj_config.bar(len(translist_hit))
 
         if len(trans_list_unhit) == 0:
             return []

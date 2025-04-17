@@ -161,7 +161,7 @@ async def doLLMTranslate(
     
     total_lines=sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
-    with alive_bar(total=total_lines, title="翻译进度", dual_line=True) as bar:
+    with alive_bar(total=total_lines, title="翻译进度") as bar:
         projectConfig.bar=bar
         # 创建所有任务
         all_tasks = []
