@@ -5,7 +5,6 @@ PyYAML
 Requests
 tenacity
 tiktoken
-tqdm
 colorlog
 openpyxl
 orjson

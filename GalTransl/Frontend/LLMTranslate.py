@@ -3,7 +3,6 @@ from os import makedirs, cpu_count, sep as os_sep
 from os.path import join as joinpath, exists as isPathExists, dirname
 from alive_progress import alive_bar
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
 from time import time
 import asyncio
 from dataclasses import dataclass
@@ -102,22 +101,19 @@ async def doLLMTranslate(
             executor.submit(fplugins_load_file, file_path, fPlugins): file_path
             for file_path in file_list
         }
+        for future in as_completed(future_to_file):
+            file_path = future_to_file[future]
+            try:
+                json_list, save_func = future.result()
+                projectConfig.file_save_funcs[file_path] = save_func
+                total_chunks.extend(input_splitter.split(json_list, file_path))
+                if eng_type == "GenDic":
+                    all_jsons.extend(json_list)
+            except Exception as exc:
+                LOGGER.error(
+                    get_text("file_processing_error", GT_LANG, file_path, exc)
+                )
 
-        with tqdm(total=len(file_list), desc="读入文件", dynamic_ncols=True) as pbar:
-            for future in as_completed(future_to_file):
-                file_path = future_to_file[future]
-                try:
-                    json_list, save_func = future.result()
-                    projectConfig.file_save_funcs[file_path] = save_func
-                    total_chunks.extend(input_splitter.split(json_list, file_path))
-                    if eng_type == "GenDic":
-                        all_jsons.extend(json_list)
-                except Exception as exc:
-                    LOGGER.error(
-                        get_text("file_processing_error", GT_LANG, file_path, exc)
-                    )
-                finally:
-                    pbar.update(1)
 
     if "dump-name" in eng_type:
         dump_name_table_from_chunks(total_chunks, projectConfig)

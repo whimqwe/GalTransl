@@ -1,18 +1,13 @@
 import json, time, asyncio, os, traceback, re
-from sys import exit,stdout
 from opencc import OpenCC
 from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
 from GalTransl import LOGGER, LANG_SUPPORTED, TRANSLATOR_DEFAULT_ENGINE
 from GalTransl.i18n import get_text,GT_LANG
-from sys import exit
 from GalTransl.ConfigHelper import (
     CProjectConfig,
 )
-from tqdm.contrib.logging import logging_redirect_tqdm
-from tqdm.asyncio import tqdm as atqdm
-from random import choice
 from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
@@ -53,6 +48,7 @@ class CGPT4Translate(BaseTranslate):
         Returns:
             None
         """
+        self.pj_config=config
         self.eng_type = eng_type
         self.last_file_name = ""
         self.restore_context_mode = config.getKey("gpt.restoreContextMode")
@@ -272,13 +268,12 @@ class CGPT4Translate(BaseTranslate):
                     self.chatbot.set_api_addr(
                         f"{self.token.domain}{base_path}/chat/completions"
                     )
-                # LOGGER.info("->输入：\n" + prompt_req + "\n")
-                with logging_redirect_tqdm(loggers=[LOGGER]):
-                    LOGGER.info(
-                        get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
-                    )
-                if self.streamOutputMode:
-                    LOGGER.info(get_text("output", GT_LANG))
+
+                # LOGGER.info(
+                #     get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
+                # )
+                # if self.streamOutputMode:
+                #     LOGGER.info(get_text("output", GT_LANG))
                 resp, data = "", ""
                 if self.eng_type != "unoffapi":
                     if not self.full_context_mode:
@@ -292,13 +287,14 @@ class CGPT4Translate(BaseTranslate):
                 elif self.eng_type == "unoffapi":
                     async for data in self.chatbot.ask_async(prompt_req):
                         if self.streamOutputMode:
-                            print(data["message"][len(resp) :], end="", flush=True)
+                            # print(data["message"][len(resp) :], end="", flush=True)
+                            pass
                         resp = data["message"]
 
-                if not self.streamOutputMode:
-                    LOGGER.info(get_text("output_with_content", GT_LANG, resp))
-                else:
-                    print("")
+                # if not self.streamOutputMode:
+                #     LOGGER.info(get_text("output_with_content", GT_LANG, resp))
+                # else:
+                #     print("")
             except asyncio.CancelledError:
                 raise
             except RuntimeError:
@@ -482,7 +478,7 @@ class CGPT4Translate(BaseTranslate):
         proofread: bool = False,
         retran_key: str = "",
     ) -> CTransList:
-        _, trans_list_unhit = get_transCache_from_json_new(
+        translist_hit, trans_list_unhit = get_transCache_from_json_new(
             trans_list,
             cache_file_path,
             retry_failed=retry_failed,
@@ -535,6 +531,7 @@ class CGPT4Translate(BaseTranslate):
 
             if num > 0:
                 i += num
+            self.pj_config.bar(num)
             result_output = ""
             for trans in trans_result:
                 result_output = result_output + repr(trans)

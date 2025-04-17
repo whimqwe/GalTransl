@@ -3,9 +3,11 @@ CloseAI related classes
 """
 
 import os
+from turtle import title
 from httpx import AsyncClient
 import asyncio
-from tqdm.asyncio import tqdm
+from asyncio import gather
+from alive_progress import alive_bar
 from time import time
 from GalTransl import LOGGER, TRANSLATOR_DEFAULT_ENGINE
 from GalTransl.ConfigHelper import CProjectConfig, CProxy
@@ -142,6 +144,7 @@ class COpenAITokenPool:
         for retry_count in range(max_retries):
             is_available, token = await self._isTokenAvailable(token, proxy, model_name)
             if is_available:
+                self.bar()
                 return is_available, token
             else:
                 # wait for some time before retrying, you can add some delay here
@@ -149,6 +152,7 @@ class COpenAITokenPool:
                 await asyncio.sleep(1)
 
         # If all retries fail, return the result from the last attempt
+        self.bar()
         return is_available, token
 
     async def checkTokenAvailablity(
@@ -164,13 +168,15 @@ class COpenAITokenPool:
 
         LOGGER.info(f"测试key是否能调用{model_name}模型...")
         fs = []
-        for _, token in self.tokens:
-            fs.append(
-                self._check_token_availability_with_retry(
-                    token, proxy if proxy else None, model_name
+        with alive_bar(total=len(self.tokens),title="测试Key……") as bar:
+            self.bar = bar
+            for _, token in self.tokens:
+                fs.append(
+                    self._check_token_availability_with_retry(
+                        token, proxy if proxy else None, model_name
+                    )
                 )
-            )
-        result: list[tuple[bool, COpenAIToken]] = await tqdm.gather(*fs, ncols=80)
+            result: list[tuple[bool, COpenAIToken]] = await gather(*fs, ncols=80)
 
         # replace list with new one
         newList: list[tuple[bool, COpenAIToken]] = []

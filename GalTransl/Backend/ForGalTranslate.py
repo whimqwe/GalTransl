@@ -1,8 +1,6 @@
 import json, time, asyncio, os, traceback, re
 from opencc import OpenCC
 from typing import Optional
-from tqdm.contrib.logging import logging_redirect_tqdm
-from tqdm.asyncio import tqdm as atqdm
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
 from GalTransl import LOGGER, LANG_SUPPORTED, TRANSLATOR_DEFAULT_ENGINE
@@ -409,7 +407,7 @@ class ForGalTranslate(BaseTranslate):
         transl_step_count = 0
 
         while i < len_trans_list:
-            await asyncio.sleep(1)
+            #await asyncio.sleep(1)
             trans_list_split = (
                 trans_list_unhit[i : i + num_pre_request]
                 if (i + num_pre_request < len_trans_list)

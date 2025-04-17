@@ -2,8 +2,6 @@ import sys, asyncio, traceback
 from opencc import OpenCC
 from typing import Optional
 from random import choice
-from tqdm.asyncio import tqdm as atqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 from GalTransl import LOGGER, LANG_SUPPORTED
 from GalTransl.ConfigHelper import CProjectConfig, CProxyPool
 from GalTransl.CSentense import CSentense, CTransList
@@ -32,7 +30,7 @@ class CSakuraTranslate(BaseTranslate):
         endpoint: str,
         proxy_pool: Optional[CProxyPool],
     ):
-        self.projectConfig = config
+        self.pj_config = config
         self.eng_type = eng_type
         self.endpoint = endpoint
         self.last_file_name = ""
@@ -116,7 +114,7 @@ class CSakuraTranslate(BaseTranslate):
     def init_chatbot(self, eng_type, config: CProjectConfig):
         from GalTransl.Backend.revChatGPT.V3 import Chatbot as ChatbotV3
 
-        backendSpecific = config.projectConfig["backendSpecific"]
+        backendSpecific = config.pj_config["backendSpecific"]
         section_name = "SakuraLLM" if "SakuraLLM" in backendSpecific else "Sakura"
         endpoint = self.endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -149,7 +147,7 @@ class CSakuraTranslate(BaseTranslate):
         self._set_temp_type("precise")
 
     def clean_up(self):
-        endpointQueue = self.projectConfig.endpointQueue
+        endpointQueue = self.pj_config.endpointQueue
         endpointQueue.put_nowait(self.endpoint)
 
     async def translate(self, trans_list: CTransList, gptdict=""):
@@ -221,8 +219,8 @@ class CSakuraTranslate(BaseTranslate):
 
         while True:  # 一直循环，直到得到数据
             try:
-                with logging_redirect_tqdm(loggers=[LOGGER]):
-                    LOGGER.info("->输入：\n" + gptdict + "\n" + repr(input_str))
+
+                LOGGER.debug("->输入：\n" + gptdict + "\n" + repr(input_str))
                 print("\n", flush=True)
                 resp = ""
                 last_data = ""
@@ -387,14 +385,14 @@ class CSakuraTranslate(BaseTranslate):
         proofread: bool = False,
         retran_key: str = "",
     ) -> CTransList:
-        _, trans_list_unhit = get_transCache_from_json_new(
+        translist_hit, trans_list_unhit = get_transCache_from_json_new(
             trans_list,
             cache_file_path,
             retry_failed=retry_failed,
             proofread=False,
             retran_key=retran_key,
         )
-
+        self.pj_config.bar(len(translist_hit))
         if len(trans_list_unhit) == 0:
             return []
         # 新文件重置chatbot
@@ -409,14 +407,7 @@ class CSakuraTranslate(BaseTranslate):
         trans_result_list = []
         len_trans_list = len(trans_list_unhit)
         transl_step_count = 0
-        progress_bar = atqdm(
-            total=len_trans_list,
-            desc=f"Translating {filename}",
-            unit="line",
-            dynamic_ncols=True,
-            leave=False,
-            file=sys.stdout,
-        )
+
         while i < len_trans_list:
             # await asyncio.sleep(1)
 
@@ -436,6 +427,7 @@ class CSakuraTranslate(BaseTranslate):
 
             i += num if num > 0 else 0
             transl_counter["tran_count"]+=num
+            self.pj_config.bar(num)
             transl_step_count += 1
             if transl_step_count >= self.save_steps:
                 save_transCache_to_json(trans_list, cache_file_path)
