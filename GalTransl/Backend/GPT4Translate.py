@@ -160,7 +160,6 @@ class CGPT4Translate(BaseTranslate):
                     system_prompt = DEEPSEEK_SYSTEM_PROMPT
                     trans_prompt = DEEPSEEK_TRANS_PROMPT + prompt_content
                     proofread_prompt = DEEPSEEK_PROOFREAD_PROMPT
-
             elif change_prompt == "OverwritePrompt":
                 system_prompt = GPT4Turbo_SYSTEM_PROMPT
                 trans_prompt = prompt_content
@@ -261,13 +260,13 @@ class CGPT4Translate(BaseTranslate):
         while True:  # 一直循环，直到得到数据
             try:
                 # change token
-                if self.eng_type != "unoffapi":
-                    self.token = self.tokenProvider.getToken()
-                    self.chatbot.set_api_key(self.token.token)
-                    base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
-                    self.chatbot.set_api_addr(
-                        f"{self.token.domain}{base_path}/chat/completions"
-                    )
+
+                self.token = self.tokenProvider.getToken()
+                self.chatbot.set_api_key(self.token.token)
+                base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
+                self.chatbot.set_api_addr(
+                    f"{self.token.domain}{base_path}/chat/completions"
+                )
 
                 # LOGGER.info(
                 #     get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
@@ -275,21 +274,14 @@ class CGPT4Translate(BaseTranslate):
                 # if self.streamOutputMode:
                 #     LOGGER.info(get_text("output", GT_LANG))
                 resp, data = "", ""
-                if self.eng_type != "unoffapi":
-                    if not self.full_context_mode:
-                        self._del_previous_message()
-                    async for data in self.chatbot.ask_stream_async(
-                        prompt_req, assistant_prompt=assistant_prompt
-                    ):
-                        if self.streamOutputMode:
-                            print(data, end="", flush=True)
-                        resp += data
-                elif self.eng_type == "unoffapi":
-                    async for data in self.chatbot.ask_async(prompt_req):
-                        if self.streamOutputMode:
-                            # print(data["message"][len(resp) :], end="", flush=True)
-                            pass
-                        resp = data["message"]
+                if not self.full_context_mode:
+                    self._del_previous_message()
+                async for data in self.chatbot.ask_stream_async(
+                    prompt_req, assistant_prompt=assistant_prompt
+                ):
+                    # if self.streamOutputMode:
+                    #     print(data, end="", flush=True)
+                    resp += data
 
                 # if not self.streamOutputMode:
                 #     LOGGER.info(get_text("output_with_content", GT_LANG, resp))
@@ -504,8 +496,7 @@ class CGPT4Translate(BaseTranslate):
         i = 0
 
         if (
-            self.eng_type != "unoffapi"
-            and self.restore_context_mode
+            self.restore_context_mode
             and len(self.chatbot.conversation["default"]) == 1
         ):
             if not proofread:
@@ -550,10 +541,8 @@ class CGPT4Translate(BaseTranslate):
         return trans_result_list
 
     def reset_conversation(self):
-        if self.eng_type != "unoffapi":
-            self.chatbot.reset()
-        elif self.eng_type == "unoffapi":
-            self.chatbot.reset_chat()
+        self.chatbot.reset()
+
 
     def _del_previous_message(self) -> None:
         """删除历史消息，只保留最后一次的翻译结果，节约tokens"""
@@ -574,21 +563,18 @@ class CGPT4Translate(BaseTranslate):
             self.chatbot.conversation["default"].append(last_assistant_message)
 
     def _del_last_answer(self):
-        if self.eng_type != "unoffapi":
-            # 删除上次输出
-            if self.chatbot.conversation["default"][-1]["role"] == "assistant":
-                self.chatbot.conversation["default"].pop()
-            elif self.chatbot.conversation["default"][-1]["role"] is None:
-                self.chatbot.conversation["default"].pop()
-            # 删除上次输入
-            if self.chatbot.conversation["default"][-1]["role"] == "user":
-                self.chatbot.conversation["default"].pop()
-        elif self.eng_type == "unoffapi":
-            pass
+        # 删除上次输出
+        if self.chatbot.conversation["default"][-1]["role"] == "assistant":
+            self.chatbot.conversation["default"].pop()
+        elif self.chatbot.conversation["default"][-1]["role"] is None:
+            self.chatbot.conversation["default"].pop()
+        # 删除上次输入
+        if self.chatbot.conversation["default"][-1]["role"] == "user":
+            self.chatbot.conversation["default"].pop()
+
 
     def _set_temp_type(self, style_name: str):
-        if self.eng_type == "unoffapi":
-            return
+
         if self._current_temp_type == style_name:
             return
         self._current_temp_type = style_name
@@ -600,53 +586,51 @@ class CGPT4Translate(BaseTranslate):
             frequency_penalty, presence_penalty = 0.3, 0.0
         elif style_name == "normal":
             pass
-        if self.eng_type != "unoffapi":
-            self.chatbot.temperature = temperature
-            self.chatbot.top_p = top_p
-            self.chatbot.frequency_penalty = frequency_penalty
-            self.chatbot.presence_penalty = presence_penalty
+
+        self.chatbot.temperature = temperature
+        self.chatbot.top_p = top_p
+        self.chatbot.frequency_penalty = frequency_penalty
+        self.chatbot.presence_penalty = presence_penalty
 
     def restore_context(self, trans_list_unhit: CTransList, num_pre_request: int):
-        if self.eng_type != "unoffapi":
-            if trans_list_unhit[0].prev_tran == None:
-                return
-            tmp_context = []
-            num_count = 0
-            current_tran = trans_list_unhit[0].prev_tran
-            while current_tran != None:
-                if current_tran.pre_zh == "":
-                    current_tran = current_tran.prev_tran
-                    continue
-                tmp_obj = {
-                    "id": current_tran.index,
-                    "name": current_tran._speaker,
-                    "dst": current_tran.pre_zh,
-                }
-                if current_tran._speaker == "":
-                    del tmp_obj["name"]
-                tmp_context.append(tmp_obj)
-                num_count += 1
-                if num_count >= num_pre_request:
-                    break
+        if trans_list_unhit[0].prev_tran == None:
+            return
+        tmp_context = []
+        num_count = 0
+        current_tran = trans_list_unhit[0].prev_tran
+        while current_tran != None:
+            if current_tran.pre_zh == "":
                 current_tran = current_tran.prev_tran
+                continue
+            tmp_obj = {
+                "id": current_tran.index,
+                "name": current_tran._speaker,
+                "dst": current_tran.pre_zh,
+            }
+            if current_tran._speaker == "":
+                del tmp_obj["name"]
+            tmp_context.append(tmp_obj)
+            num_count += 1
+            if num_count >= num_pre_request:
+                break
+            current_tran = current_tran.prev_tran
 
-            tmp_context.reverse()
-            json_lines = "\n".join(
-                [json.dumps(obj, ensure_ascii=False) for obj in tmp_context]
-            )
-            self.chatbot.conversation["default"].append(
-                {"role": "user", "content": "(History Translation Request)"}
-            )
-            self.chatbot.conversation["default"].append(
-                {
-                    "role": "assistant",
-                    "content": f"Transl: \n```jsonline\n{json_lines}\n```",
-                },
-            )
-            LOGGER.info("-> 恢复了上下文")
+        tmp_context.reverse()
+        json_lines = "\n".join(
+            [json.dumps(obj, ensure_ascii=False) for obj in tmp_context]
+        )
+        self.chatbot.conversation["default"].append(
+            {"role": "user", "content": "(History Translation Request)"}
+        )
+        self.chatbot.conversation["default"].append(
+            {
+                "role": "assistant",
+                "content": f"Transl: \n```jsonline\n{json_lines}\n```",
+            },
+        )
+        LOGGER.info("-> 恢复了上下文")
 
-        elif self.eng_type == "unoffapi":
-            pass
+
 
 
 if __name__ == "__main__":
