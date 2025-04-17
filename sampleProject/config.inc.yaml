@@ -46,7 +46,6 @@ common:
     #- "项目GPT字典" # LLM没有按GPT字典要求翻译
 
   # 通用翻译设置
-  gpt.streamOutputMode: true # 流式输出效果，多线程下无效。[True/False]
   gpt.tooManyRequestsWaitTime: 60 # Too Many Requests 错误等待时间，单位秒
   gpt.enhance_jailbreak: False # 减少通用模型拒绝翻译
   # GPT4

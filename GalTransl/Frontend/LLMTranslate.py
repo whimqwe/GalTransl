@@ -182,6 +182,7 @@ async def doLLMTranslSingleChunk(
 ) -> Tuple[bool, List, List, str, SplitChunkMetadata]:
 
     async with semaphore:
+        print(f"线程 {semaphore._value} 开始翻译 {split_chunk.file_path}")
         st = time()
         proj_dir = projectConfig.getProjectDir()
         input_dir = projectConfig.getInputPath()

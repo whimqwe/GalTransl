@@ -12,7 +12,7 @@ from GalTransl.ConfigHelper import (
 from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
-from openai import OpenAI, RateLimitError
+from openai import RateLimitError,AsyncOpenAI
 import re
 
 
@@ -107,11 +107,12 @@ class BaseTranslate:
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()
-
-            client = httpx.Client(proxy=self.proxy)
+            # 使用异步 httpx 客户端
+            client = httpx.AsyncClient(proxy=self.proxy.addr if self.proxy else None)
         else:
-            client = None
-        self.chatbot = OpenAI(
+            # 使用异步 httpx 客户端
+            client = httpx.AsyncClient()
+        self.chatbot = AsyncOpenAI(
             api_key=self.token.token,
             base_url=f"{self.token.domain}{base_path}",
             max_retries=0,
@@ -119,7 +120,7 @@ class BaseTranslate:
         )
         pass
 
-    def ask_chatbot(
+    async def ask_chatbot(
         self, prompt="", system="", messages=[], temperature=0.5, frequency_penalty=0.1
     ):
         retry_count = 0
@@ -131,6 +132,14 @@ class BaseTranslate:
                         {"role": "user", "content": prompt},
                     ]
                 response = self.chatbot.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    stream=False,
+                    temperature=temperature,
+                    frequency_penalty=frequency_penalty,
+                )
+                # 使用 await 等待异步调用完成
+                response = await self.chatbot.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
                     stream=False,
