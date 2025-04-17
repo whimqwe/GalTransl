@@ -209,7 +209,7 @@ class BaseTranslate:
         len_trans_list = len(trans_list_unhit)
         transl_step_count = 0
         while i < len_trans_list:
-            await asyncio.sleep(1)
+            #await asyncio.sleep(1)
             trans_list_split = (
                 trans_list_unhit[i : i + num_pre_request]
                 if (i + num_pre_request < len_trans_list)

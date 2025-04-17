@@ -132,8 +132,12 @@ class ForGalTranslate(BaseTranslate):
                     and '"' not in trans_list[i].post_jp
                 ):
                     line_dst = line_dst.replace('"', "")
-                else:
+                elif '"' not in trans_list[i].post_jp and '"' in line_dst:
                     line_dst = fix_quotes2(line_dst)
+                elif '"' in trans_list[i].post_jp and "”" in line_dst:
+                    line_dst = line_dst.replace("“", '"')
+                    line_dst = line_dst.replace("”", '"')
+
                 if not line_dst.startswith("「") and trans_list[i].post_jp.startswith(
                     "「"
                 ):

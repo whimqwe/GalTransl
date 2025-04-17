@@ -331,7 +331,7 @@ class CSakuraTranslate(BaseTranslate):
                     LOGGER.error(f"-> 错误的输出：{error_message}")
                     # 删除上次回答与提问
                     self._del_last_answer()
-                    await asyncio.sleep(1)
+                    #await asyncio.sleep(1)
                     if degen_flag:
                         self._set_temp_type("normal")
                         # 先增加frequency_penalty参数重试再进行二分

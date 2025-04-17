@@ -199,6 +199,8 @@ def fix_quotes(text):
     return text
 
 def fix_quotes2(text):
+    if text.startswith('"') and text.endswith('"'):
+        text = f"“{text[1:-1]}”"
     for i in range(text.count('"')):
         if i % 2 == 0:
             text = text.replace('"', "“", 1).replace(r'\“', "“", 1)
@@ -268,6 +270,6 @@ def decompress_file_lzma(input_filepath, output_filepath=None):
         print(f"解压缩文件时发生错误: {e}")
 
 if __name__ == '__main__':
-    print(contains_english("機密レベルＡＡ以上のファイルを一覧"))
+    pass
 
 
