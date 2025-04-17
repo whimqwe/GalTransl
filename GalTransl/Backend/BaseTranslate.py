@@ -1,20 +1,17 @@
-import json, time, asyncio, os, traceback
-import openai
+import time, asyncio
+import httpx
 from opencc import OpenCC
 from typing import Optional
 from GalTransl.COpenAI import COpenAITokenPool
 from GalTransl.ConfigHelper import CProxyPool
 from GalTransl import LOGGER, LANG_SUPPORTED, TRANSLATOR_DEFAULT_ENGINE
 from GalTransl.i18n import get_text, GT_LANG
-from sys import exit
 from GalTransl.ConfigHelper import (
     CProjectConfig,
 )
-from random import choice
 from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
-from GalTransl.Utils import extract_code_blocks, fix_quotes
 from openai import OpenAI, RateLimitError
 import re
 
@@ -38,6 +35,7 @@ class BaseTranslate:
         Returns:
             None
         """
+        self.pj_config = config
         self.eng_type = eng_type
         self.last_file_name = ""
         self.restore_context_mode = config.getKey("gpt.restoreContextMode")
@@ -107,14 +105,23 @@ class BaseTranslate:
         )
         self.token = self.tokenProvider.getToken()
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
+        if self.proxyProvider:
+            self.proxy = self.proxyProvider.getProxy()
+
+            client = httpx.Client(proxy=self.proxy)
+        else:
+            client = None
         self.chatbot = OpenAI(
             api_key=self.token.token,
             base_url=f"{self.token.domain}{base_path}",
             max_retries=0,
+            http_client=client,
         )
         pass
 
-    def ask_chatbot(self, prompt="", system="", messages=[]):
+    def ask_chatbot(
+        self, prompt="", system="", messages=[], temperature=0.5, frequency_penalty=0.1
+    ):
         retry_count = 0
         while True:
             try:
@@ -124,11 +131,15 @@ class BaseTranslate:
                         {"role": "user", "content": prompt},
                     ]
                 response = self.chatbot.chat.completions.create(
-                    model=self.model_name, messages=messages, stream=False
+                    model=self.model_name,
+                    messages=messages,
+                    stream=False,
+                    temperature=temperature,
+                    frequency_penalty=frequency_penalty,
                 )
                 return response.choices[0].message.content
             except RateLimitError as e:
-                LOGGER.debug(f"[频率限制] {e}")
+                LOGGER.debug(f"[RateLimit] {e}")
                 time.sleep(3)
             except Exception as e:
                 retry_count += 1
@@ -218,3 +229,19 @@ class BaseTranslate:
             )
 
         return trans_result_list
+
+    def _set_temp_type(self, style_name: str):
+        if self._current_temp_type == style_name:
+            return
+        self._current_temp_type = style_name
+        # normal default
+        temperature = 0.6
+        frequency_penalty = 0.5
+        if style_name == "precise":
+            temperature = 0.3
+            frequency_penalty = 0.1
+        elif style_name == "normal":
+            pass
+
+        self.temperature = temperature
+        self.frequency_penalty = frequency_penalty

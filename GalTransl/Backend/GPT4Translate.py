@@ -485,7 +485,8 @@ class CGPT4Translate(BaseTranslate):
                 for tran in trans_list_unhit
                 if not any(word in tran.post_jp for word in H_WORDS_LIST)
             ]
-
+        if len(translist_hit) > 0:
+            self.pj_config.bar(len(translist_hit))
         if len(trans_list_unhit) == 0:
             return []
         # 新文件重置chatbot

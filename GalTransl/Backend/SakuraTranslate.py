@@ -392,7 +392,8 @@ class CSakuraTranslate(BaseTranslate):
             proofread=False,
             retran_key=retran_key,
         )
-        self.pj_config.bar(len(translist_hit))
+        if len(translist_hit) > 0:
+            self.pj_config.bar(len(translist_hit))
         if len(trans_list_unhit) == 0:
             return []
         # 新文件重置chatbot
