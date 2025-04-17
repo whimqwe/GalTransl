@@ -6,14 +6,6 @@ from GalTransl.ConfigHelper import CProjectConfig, CProblemType
 from GalTransl.Utils import get_most_common_char, contains_japanese, contains_english
 from GalTransl.Dictionary import CGptDict
 
-fasttext_model = None
-def load_fasttext():
-    import fasttext
-
-    model_path = "./res/lid.176.ftz"
-    model = fasttext.load_model(model_path)
-    return model
-
 def find_problems(
     trans_list: CTransList,
     projectConfig: CProjectConfig,
@@ -41,6 +33,8 @@ def find_problems(
         post_jp = tran.post_jp
         pre_zh = tran.pre_zh
         post_zh = tran.post_zh
+        if pre_zh == "":
+            continue
 
         problem_list = []
         if CProblemType.词频过高 in find_type:
@@ -95,15 +89,14 @@ def find_problems(
                 if contains_english(post_zh): # 修了的不显示
                     problem_list.append("引入英文")
         if CProblemType.语言不通 in find_type:
-            global fasttext_model
-            if fasttext_model is None:
-                fasttext_model = load_fasttext()
-            pred=fasttext_model.predict(post_zh, k=1)
-            lang_id=pred[0][0].split("__")[-1]
+            import langid
+            result=langid.classify(pre_zh)
+            lang_id=result[0]   
             if lang_id=="zh":
                 lang_id="zh-cn"
             if lang_id!=projectConfig.target_lang:
-                problem_list.append(f"语言不通")
+                if lang_id!="ja":
+                    problem_list.append(f"语言不通")
 
         if arinashi_dict != {}:
             for key, value in arinashi_dict.items():
