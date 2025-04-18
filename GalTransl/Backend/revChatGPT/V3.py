@@ -44,31 +44,18 @@ class Chatbot:
             proxy or os.environ.get("all_proxy") or os.environ.get("ALL_PROXY") or None
         ):
             if "socks5h" not in proxy:
-                if is_new_version:
-                    self.aclient = httpx.AsyncClient(
-                        follow_redirects=True,
-                        proxy=proxy,
-                        timeout=self.timeout,
-                    )
-                else:
-                    self.aclient = httpx.AsyncClient(
-                        follow_redirects=True,
-                        proxies=proxy,
-                        timeout=self.timeout,
-                    )
-        else:
-            if is_new_version:
                 self.aclient = httpx.AsyncClient(
                     follow_redirects=True,
                     proxy=proxy,
                     timeout=self.timeout,
                 )
-            else:
-                self.aclient = httpx.AsyncClient(
-                    follow_redirects=True,
-                    proxies=proxy,
-                    timeout=self.timeout,
-                )
+        else:
+            self.aclient = httpx.AsyncClient(
+                follow_redirects=True,
+                proxy=proxy,
+                timeout=self.timeout,
+            )
+
         pass
 
     def __init__(
