@@ -38,10 +38,18 @@ class GenDic(BaseTranslate):
 
 
 
-    async def llm_gen_dic(self,text:str):
-        prompt=GENDIC_PROMPT.format(input=text)
-        rsp=self.ask_chatbot(prompt,GENDIC_SYSTEM)
-        #print(rsp)
+    async def llm_gen_dic(self,text:str,name_list=[]):
+        hint="无"
+        name_hit=[]
+        for name in name_list:
+            if name in text:
+                name_hit.append(name)
+        if name_hit:
+            hint="输入文本中的这些词语是一定要加入术语表的: \n"+"\n".join(name_hit)
+
+        prompt=GENDIC_PROMPT.format(input=text,hint=hint)
+        rsp=await self.ask_chatbot(prompt,GENDIC_SYSTEM)
+        print(rsp)
         lines=rsp.split("\n")
 
         for line in lines:
@@ -91,22 +99,25 @@ class GenDic(BaseTranslate):
                 os.remove(model_path)
                 return False
             bar()
-
+            
+            word_counter=collections.Counter()
             segment_list=[]
+            segment_words_list=[]
+            name_set=set()
             max_len=512
             tmp_text=""
             for item in json_list:
                 if len(tmp_text)>max_len:
                     segment_list.append(tmp_text)
                     tmp_text=""
-                if "name" not in item:
-                    tmp_text+=item["message"]+"\n"
-                else:
+                if "name" in item and item["name"]!="":
+                    name_set.add(item["name"])
                     tmp_text+=item["name"]+item["message"]+"\n"
+                    word_counter[item["name"]]+=2
+                else:
+                    tmp_text+=item["message"]+"\n"
             
             segment_list.append(tmp_text)
-            segment_words_list=[]
-            word_counter=collections.Counter()
             bar.title="处理分词……"
 
             for item in segment_list:
@@ -141,33 +152,21 @@ class GenDic(BaseTranslate):
 
         index_list=solve_sentence_selection(segment_words_list_new)
         # 取前100个
-        index_list=index_list[:100]
+        index_list=index_list[:128]
         LOGGER.info(f"启动{self.wokers}个工作线程，共{len(index_list)}个任务" )
-        with alive_bar(total=len(index_list),title=f"{self.wokers}线程生成字典中……") as bar:
-            # 定义工作函数
-            def process_item(idx):
+        sem = asyncio.Semaphore(self.wokers)
+        async def process_item_async(idx):
+            async with sem:
                 try:
                     item = segment_list[idx]
-                    # 由于llm_gen_dic是异步函数，需要在同步环境中运行
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    result = loop.run_until_complete(self.llm_gen_dic(item))
-                    loop.close()
-                    bar()
-                    return result
+                    await self.llm_gen_dic(item,name_list=list(name_set))
                 except Exception as e:
                     LOGGER.error(f"处理任务时出错: {e}")
-                    return None
-            
-            # 使用ThreadPoolExecutor处理任务
-            with ThreadPoolExecutor(max_workers=self.wokers) as executor:
-                # 提交所有任务
-                futures = [executor.submit(process_item, idx) for idx in index_list]
-                
-                # 等待所有任务完成
-                for future in futures:
-                    future.result()  # 获取结果，确保所有异常都被处理
-
+        tasks = [process_item_async(idx) for idx in index_list]
+        with alive_bar(total=len(index_list),title=f"{self.wokers} 线程生成字典中……") as bar:
+            for f in asyncio.as_completed(tasks):
+                await f
+                bar()
 
         # 保存到文件
         # 按出现次数排序
@@ -187,6 +186,8 @@ class GenDic(BaseTranslate):
             elif "地名" in item[2]:
                 final_list.append(item)
             elif item[0] in word_counter:
+                final_list.append(item)
+            elif item[0] in name_set:
                 final_list.append(item)
 
         result_path=os.path.join(self.config.getProjectDir(),"项目GPT字典-生成.txt")

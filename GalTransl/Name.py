@@ -66,7 +66,7 @@ def dump_name_table_from_chunks(
 
     LOGGER.debug(f"共发现 {len(name_dict)} 个人名，按出现次数排序如下：")
     for name, count in name_dict.items():
-        LOGGER.info(f"{name}: {count}")
+        LOGGER.debug(f"{name}: {count}")
 
     excel_path = joinpath(proj_dir, "name替换表.xlsx")
     try:
