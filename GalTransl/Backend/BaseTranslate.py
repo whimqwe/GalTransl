@@ -131,14 +131,6 @@ class BaseTranslate:
                         {"role": "system", "content": system},
                         {"role": "user", "content": prompt},
                     ]
-                response = self.chatbot.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    stream=False,
-                    temperature=temperature,
-                    frequency_penalty=frequency_penalty,
-                )
-                # 使用 await 等待异步调用完成
                 response = await self.chatbot.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
