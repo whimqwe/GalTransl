@@ -317,6 +317,12 @@ class CGptDict:
         self._dic_list: List[CBasicDicElement] = []
         for dic_path in dic_list:
             self.load_dic(dic_path)  # 加载字典
+    
+    def get_dst(self,word):
+        for dic in self._dic_list:
+            if dic.search_word == word:
+                return dic.replace_word
+        return ""
 
     def sort_dic(self):
         """

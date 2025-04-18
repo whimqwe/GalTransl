@@ -50,8 +50,8 @@ async def doLLMTranslate(
     makedirs(output_dir, exist_ok=True)
     makedirs(cache_dir, exist_ok=True)
 
-    # 初始化人名替换表
-    name_replaceDict_path = joinpath(projectConfig.getProjectDir(), "人名替换表.csv")
+    # 初始化name替换表
+    name_replaceDict_path = joinpath(projectConfig.getProjectDir(), "name替换表.xlsx")
     if isPathExists(name_replaceDict_path):
         projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
 
@@ -124,6 +124,9 @@ async def doLLMTranslate(
         await gptapi.batch_translate(all_jsons)
         return True
 
+    if not isPathExists(name_replaceDict_path):
+        dump_name_table_from_chunks(total_chunks, projectConfig)
+        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
 
     async def run_task(task_func):
         try:
