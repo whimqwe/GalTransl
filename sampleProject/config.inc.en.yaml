@@ -46,8 +46,7 @@ common:
   # GPT4
   gpt.enableProofRead: false # (GPT4) Whether to enable post-translation proofreading. (Not recommended, long unmaintained) [True/False]
   gpt.numPerRequestProofRead: 7 # (GPT4) Number of sentences per proofreading request, not recommended to modify
-  gpt.change_prompt: false # (GPT-4/r1) Whether to enable modifying default prompt
-  gpt.prompt_type: "AdditionalPrompt" # (GPT-4/r1) "AdditionalPrompt" to add additional requirements, "OverwritePrompt" to overwrite original prompt
+  gpt.change_prompt: "no" # (GPT-4/r1) Whether to enable modifying default prompt, "AdditionalPrompt" to add additional requirements, "OverwritePrompt" to overwrite original prompt
   gpt.prompt_content: "Translate results using classical Chinese" # Example additional requirement, effective only when change_prompt is true
   # Sakura/GalTransl
   gpt.token_limit: 0 # (Sakura/Galtransl-7b) (Experimental) Limit token count per request when > 0. Set to llama.cpp -c value divided by 2 to prevent context overflow.
