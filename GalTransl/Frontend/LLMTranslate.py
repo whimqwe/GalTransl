@@ -160,6 +160,9 @@ async def doLLMTranslate(
     
     total_lines=sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
+    # 初始化共享的 gptapi 实例
+    gptapi = await init_gptapi(projectConfig)
+
     with alive_bar(total=total_lines, title="翻译进度",unit=" line") as bar:
         projectConfig.bar=bar
         # 创建所有任务
@@ -170,6 +173,7 @@ async def doLLMTranslate(
                     semaphore,
                     split_chunk=chunk,
                     projectConfig=projectConfig,
+                    gptapi=gptapi,  # 传递共享的 gptapi 实例
                 )
             )
 
@@ -182,6 +186,7 @@ async def doLLMTranslSingleChunk(
     semaphore: asyncio.Semaphore,
     split_chunk: SplitChunkMetadata,
     projectConfig: CProjectConfig,
+    gptapi: Any, # 添加 gptapi 参数
 ) -> Tuple[bool, List, List, str, SplitChunkMetadata]:
 
     async with semaphore:
@@ -260,7 +265,7 @@ async def doLLMTranslSingleChunk(
             projectConfig.bar(len(translist_hit))
 
         if len(translist_unhit) > 0:
-            gptapi = await init_gptapi(projectConfig)
+            # gptapi = await init_gptapi(projectConfig) # 移除此行
             # 执行翻译
             await gptapi.batch_translate(
                 file_name,
