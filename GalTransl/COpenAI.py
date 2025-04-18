@@ -176,7 +176,7 @@ class COpenAITokenPool:
                         token, proxy if proxy else None, model_name
                     )
                 )
-            result: list[tuple[bool, COpenAIToken]] = await gather(*fs, ncols=80)
+            result: list[tuple[bool, COpenAIToken]] = await gather(*fs)
 
         # replace list with new one
         newList: list[tuple[bool, COpenAIToken]] = []
