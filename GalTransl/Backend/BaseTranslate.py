@@ -12,7 +12,7 @@ from GalTransl.ConfigHelper import (
 from GalTransl.CSentense import CSentense, CTransList
 from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
-from openai import RateLimitError,AsyncOpenAI
+from openai import RateLimitError, AsyncOpenAI
 import re
 
 
@@ -21,8 +21,8 @@ class BaseTranslate:
         self,
         config: CProjectConfig,
         eng_type: str,
-        proxy_pool: Optional[CProxyPool],
-        token_pool: COpenAITokenPool,
+        proxy_pool: Optional[CProxyPool]=None,
+        token_pool: COpenAITokenPool=None,
     ):
         """
         根据提供的类型、配置、API 密钥和代理设置初始化 Chatbot 对象。
@@ -89,8 +89,6 @@ class BaseTranslate:
 
         self._current_temp_type = ""
 
-        self.init_chatbot(eng_type=eng_type, config=config)  # 模型选择
-
         if self.target_lang == "Simplified_Chinese":
             self.opencc = OpenCC("t2s.json")
         elif self.target_lang == "Traditional_Chinese":
@@ -107,10 +105,8 @@ class BaseTranslate:
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()
-            # 使用异步 httpx 客户端
             client = httpx.AsyncClient(proxy=self.proxy.addr if self.proxy else None)
         else:
-            # 使用异步 httpx 客户端
             client = httpx.AsyncClient()
         self.chatbot = AsyncOpenAI(
             api_key=self.token.token,
@@ -121,7 +117,15 @@ class BaseTranslate:
         pass
 
     async def ask_chatbot(
-        self, prompt="", system="", messages=[], temperature=0.5, frequency_penalty=0.1
+        self,
+        model_name="",
+        prompt="",
+        system="",
+        messages=[],
+        temperature=0.5,
+        frequency_penalty=0.1,
+        stream=False,
+        max_tokens=None,
     ):
         retry_count = 0
         while True:
@@ -132,12 +136,15 @@ class BaseTranslate:
                         {"role": "user", "content": prompt},
                     ]
                 response = await self.chatbot.chat.completions.create(
-                    model=self.model_name,
+                    model=model_name if model_name else self.model_name,
                     messages=messages,
-                    stream=False,
+                    stream=stream,
                     temperature=temperature,
                     frequency_penalty=frequency_penalty,
+                    max_tokens=max_tokens,
                 )
+                if stream:
+                    return response
                 return response.choices[0].message.content
             except RateLimitError as e:
                 LOGGER.debug(f"[RateLimit] {e}")
@@ -201,7 +208,7 @@ class BaseTranslate:
         len_trans_list = len(translist_unhit)
         transl_step_count = 0
         while i < len_trans_list:
-            #await asyncio.sleep(1)
+            # await asyncio.sleep(1)
             trans_list_split = (
                 translist_unhit[i : i + num_pre_request]
                 if (i + num_pre_request < len_trans_list)

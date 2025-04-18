@@ -16,7 +16,7 @@ from GalTransl.Backend.Prompts import (
     Sakura_SYSTEM_PROMPT010,
     GalTransl_SYSTEM_PROMPT,
     GalTransl_TRANS_PROMPT,
-    GalTransl_TRANS_PROMPT_V3
+    GalTransl_TRANS_PROMPT_V3,
 )
 from GalTransl import transl_counter
 
@@ -30,61 +30,12 @@ class CSakuraTranslate(BaseTranslate):
         endpoint: str,
         proxy_pool: Optional[CProxyPool],
     ):
-        self.pj_config = config
-        self.eng_type = eng_type
-        self.endpoint = endpoint
-        self.last_file_name = ""
-        self.restore_context_mode = config.getKey("gpt.restoreContextMode")
-        self.retry_count = 0
 
-        # 语言设置
-        if val := config.getKey("language"):
-            sp = val.split("2")
-            self.source_lang = sp[0]
-            self.target_lang = sp[1]
-        elif val := config.getKey("sourceLanguage"):  # 兼容旧版本配置
-            self.source_lang = val
-            self.target_lang = config.getKey("targetLanguage")
-        else:
-            self.source_lang = "ja"
-            self.target_lang = "zh-cn"
-        if self.source_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的源语言代码：" + self.source_lang)
-        else:
-            self.source_lang = LANG_SUPPORTED[self.source_lang]
-        if self.target_lang not in LANG_SUPPORTED.keys():
-            raise ValueError("错误的目标语言代码：" + self.target_lang)
-        else:
-            self.target_lang = LANG_SUPPORTED[self.target_lang]
-        # 保存间隔
-        if val := config.getKey("save_steps"):
-            self.save_steps = val
-        else:
-            self.save_steps = 1
-        # 跳过重试
-        if val := config.getKey("skipRetry"):
-            self.skipRetry = val
-        else:
-            self.skipRetry = False
-        # 流式输出模式
-        if val := config.getKey("gpt.streamOutputMode"):
-            self.streamOutputMode = val
-        else:
-            self.streamOutputMode = False
-        # 多线程关闭流式输出
-        if val := config.getKey("workersPerProject"):
-            if val > 1:
-                self.streamOutputMode = False
-        # 代理
-        if config.getKey("internals.enableProxy") == True:
-            self.proxyProvider = proxy_pool
-        else:
-            self.proxyProvider = None
-        # transl_style（废弃）
-        if val := config.getKey("gpt.transl_style"):
-            self.transl_style = val
-        else:
-            self.transl_style = "流畅"
+        super().__init__(
+            config=config,
+            eng_type=eng_type,
+            proxy_pool=proxy_pool,
+        )
         # transl_dropout
         if val := config.getKey("gpt.transl_dropout"):
             self.transl_dropout = val
@@ -104,63 +55,62 @@ class CSakuraTranslate(BaseTranslate):
             self.opencc = OpenCC("t2s.json")
         elif self.target_lang == "Traditional_Chinese":
             self.opencc = OpenCC("s2tw.json")
-        
-        self.last_translation=""
+
+        self.last_translation = ""
+        self.endpoint = endpoint
 
         self.init_chatbot(eng_type=eng_type, config=config)  # 模型初始化
+        self._set_temp_type("precise")
+
 
         pass
 
     def init_chatbot(self, eng_type, config: CProjectConfig):
-        from GalTransl.Backend.revChatGPT.V3 import Chatbot as ChatbotV3
+        from openai import RateLimitError, AsyncOpenAI
+        import httpx
+        import re
 
         backendSpecific = config.projectConfig["backendSpecific"]
         section_name = "SakuraLLM" if "SakuraLLM" in backendSpecific else "Sakura"
+        model_name = config.getBackendConfigSection(section_name).get(
+            "rewriteModelName"
+        )
+        self.model_name = model_name if model_name else "sakura"
+
         endpoint = self.endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        eng_name = config.getBackendConfigSection(section_name).get(
-            "rewriteModelName", "gpt-3.5-turbo"
-        )
-        if eng_type == "sakura-009":
-            self.system_prompt = Sakura_SYSTEM_PROMPT
-            self.trans_prompt = Sakura_TRANS_PROMPT
+        base_path = "/v1" if not re.search(r"/v\d+$", endpoint) else ""
+
         if eng_type == "sakura-v1.0":
             self.system_prompt = Sakura_SYSTEM_PROMPT010
             self.trans_prompt = Sakura_TRANS_PROMPT010
         if "galtransl" in eng_type:
             self.system_prompt = GalTransl_SYSTEM_PROMPT
-            self.trans_prompt = GalTransl_TRANS_PROMPT
-        if "galtransl-v3" in eng_type:
-            self.system_prompt = GalTransl_SYSTEM_PROMPT
             self.trans_prompt = GalTransl_TRANS_PROMPT_V3
-        self.chatbot = ChatbotV3(
-            api_key="sk-114514",
-            system_prompt=self.system_prompt,
-            engine=eng_name,
-            api_address=endpoint + "/v1/chat/completions",
-            timeout=60,
+
+        if self.proxyProvider:
+            self.proxy = self.proxyProvider.getProxy()
+            client = httpx.AsyncClient(proxy=self.proxy.addr if self.proxy else None)
+        else:
+            client = httpx.AsyncClient()
+
+        self.chatbot = AsyncOpenAI(
+            api_key="sk-2333",
+            base_url=f"{endpoint}{base_path}",
+            max_retries=0,
+            http_client=client,
         )
-        self.chatbot.update_proxy(
-            self.proxyProvider.getProxy().addr if self.proxyProvider else None  # type: ignore
-        )
-        self._current_temp_type = "precies"
-        self._set_temp_type("precise")
 
     def clean_up(self):
-        endpointQueue = self.pj_config.endpointQueue
-        endpointQueue.put_nowait(self.endpoint)
+        self.pj_config.endpointQueue.put_nowait(self.endpoint)
 
     async def translate(self, trans_list: CTransList, gptdict=""):
         input_list = []
         max_repeat = 0
         line_lens = []
         for i, trans in enumerate(trans_list):
-            # 处理换行 sakura旧模型
-            if self.eng_type in ["sakura-009"]:
-                tmp_text = trans.post_jp.replace("\r\n", "↓↓").replace("\n", "↓↓")
-            else:
-                tmp_text = trans.post_jp.replace("\r\n", "\\n").replace("\n", "\\n")
-            # 有name
+            tmp_text = trans.post_jp.replace("\r\n", "\\n").replace("\n", "\\n")
+
             if trans.speaker != "":
                 tmp_text = f"{trans.speaker}「{tmp_text}」"
             input_list.append(tmp_text)
@@ -169,110 +119,42 @@ class CSakuraTranslate(BaseTranslate):
             line_lens.append(len(tmp_text))
         input_str = "\n".join(input_list).strip("\n")
 
-        if self.token_limit > 0 and self.tokenizer:
-            check_pass_flag = False
-            while not check_pass_flag:
-                input_str = "\n".join(input_list).strip("\n")
-                history = self._get_gpt_history()
-                prompt_req = (
-                    self.trans_prompt.replace("[Input]", input_str)
-                    .replace("[Glossary]", gptdict)
-                    .replace("[tran_style]", self.transl_style)
-                )
-
-                all_tokens = len(self.tokenizer.encode(history + prompt_req))
-                if all_tokens <= self.token_limit:
-                    check_pass_flag = True
-                else:
-                    if len(input_list) > 1:
-                        input_list = input_list[:-1]
-                        trans_list = trans_list[:-1]
-                        line_lens = line_lens[:-1]
-                        continue
-                    elif len(self.chatbot.conversation["default"]) > 1:
-                        self.reset_conversation()
-                        continue
-                    else:
-                        LOGGER.error(
-                            f"-> 输入超出token限制，且无法再减少，请检查输入的文本"
-                        )
-                        check_pass_flag = True
-
-        # 检测退化阈值
-        self.JP_REPETITION_THRESHOLD_LINE = max_repeat
-        _, self.JP_REPETITION_THRESHOLD_ALL = find_most_repeated_substring(input_str)
-        self.JP_LINE_LENS = line_lens
-
         prompt_req = self.trans_prompt
         prompt_req = prompt_req.replace("[Input]", input_str)
         prompt_req = prompt_req.replace("[Glossary]", gptdict)
-        prompt_req = prompt_req.replace("[tran_style]", self.transl_style)
-        if self.eng_type in ["galtransl-v3"]: # v3不使用多轮对话做上下文
-            self.reset_conversation()
+
+        if self.eng_type in ["galtransl-v3"]:  # v3不使用多轮对话做上下文
             history = ""
             if self.last_translation:
-                history=f"历史翻译：{self.last_translation}\n"
-            prompt_req=prompt_req.replace("[History]", history)
+                history = f"历史翻译：{self.last_translation}\n"
+            prompt_req = prompt_req.replace("[History]", history)
 
-
-        once_flag = False
+        messages = []
+        messages.append({"role": "system", "content": self.system_prompt})
+        if "sakura" in self.eng_type and self.last_translation:
+            messages.append({"role": "user", "content": "(上轮翻译请求)"})
+            messages.append({"role": "assistant", "content": self.last_translation})
+        messages.append({"role": "user", "content": prompt_req})
 
         while True:  # 一直循环，直到得到数据
-            try:
+            LOGGER.debug(f"->'翻译输入'：{prompt_req}")
+            LOGGER.debug("->输出：")
+            resp = ""
+            resp = await self.ask_chatbot(
+                messages=messages,
+                temperature=self.temperature,
+                frequency_penalty=self.frequency_penalty,
+                max_tokens=len(input_str) * 2,
+            )
 
-                LOGGER.debug("->输入：\n" + gptdict + "\n" + repr(input_str))
-                resp = ""
-                last_data = ""
-                repetition_cnt = 0
-                degen_flag = False
-                self._del_previous_message()
-                ask_stream = self.chatbot.ask_stream_async(prompt_req)
-                token_count = 0
-                async for data in ask_stream:
-                    token_count += 1
-                    if self.streamOutputMode:
-                        #print(data, end="", flush=True)
-                        pass
-                    resp += data
-                    # 检测是否反复重复输出同一内容，如果超过一定次数，则判定为退化并打断。
-                    if token_count % 4 == 0:  # 每4个token检测一次
-                        degen_flag = self.check_degen_in_process(resp)
-                        if degen_flag:
-                            await ask_stream.aclose()
-                            break
-                if not degen_flag:  # 结束时再检测一次
-                    degen_flag = self.check_degen_in_process(resp)
-                # print(data, end="\n")
-                # if not self.streamOutputMode:
-                #     LOGGER.info("->输出：\n" + repr(resp))
-                # else:
-                #     print("")
-            except asyncio.CancelledError:
-                raise
-            except Exception as ex:
-                str_ex = str(ex).lower()
-                traceback.print_exc()
-                self._del_last_answer()
-                LOGGER.info("-> [请求错误]报错:%s, 即将重试" % ex)
-                await asyncio.sleep(3)
-                continue
-
-            resp = resp.replace("*EOF*", "").strip() # galtransl v1.x 模型
             result_list = resp.strip("\n").split("\n")
-            # sakura旧模型 fix trick 
-            if result_list[0] == "——":
-                result_list.pop(0)
 
             i = -1
             result_trans_list = []
             error_flag = False
             error_message = ""
 
-            if degen_flag:
-                error_message = f"-> 生成过程中检测到大概率为退化的特征"
-                error_flag = True
-
-            elif len(result_list) != len(trans_list):
+            if len(result_list) != len(trans_list):
                 error_message = f"-> 翻译结果与原文长度不一致"
                 error_flag = True
 
@@ -298,9 +180,9 @@ class CSakuraTranslate(BaseTranslate):
                 line = self.opencc.convert(line)
                 # 还原换行
                 if "\r\n" in trans_list[i].post_jp:
-                    line = line.replace("↓↓", "\r\n").replace("\\n", "\r\n")
+                    line = line.replace("\\n", "\r\n")
                 elif "\n" in trans_list[i].post_jp:
-                    line = line.replace("↓↓", "\n").replace("\\n", "\n")
+                    line = line.replace("\\n", "\n")
 
                 # fix trick
                 if line.startswith("："):
@@ -312,10 +194,9 @@ class CSakuraTranslate(BaseTranslate):
                 result_trans_list.append(trans_list[i])
 
             if error_flag:
-                transl_counter["error_count"]+=1
+                transl_counter["error_count"] += 1
                 LOGGER.debug(f"错误计数：{transl_counter['error_count']}")
                 LOGGER.debug(f"翻译句数：{transl_counter['tran_count']}")
-                # LOGGER.debug(f"千句错误率：{transl_counter['error_count']/min(transl_counter['tran_count'],1)*1000:.2f}")
 
                 if self.skipRetry:
                     self.reset_conversation()
@@ -329,15 +210,7 @@ class CSakuraTranslate(BaseTranslate):
                         i = i + 1
                 else:
                     LOGGER.error(f"-> 错误的输出：{error_message}")
-                    # 删除上次回答与提问
-                    self._del_last_answer()
-                    #await asyncio.sleep(1)
-                    if degen_flag:
-                        self._set_temp_type("normal")
-                        # 先增加frequency_penalty参数重试再进行二分
-                        if not once_flag:
-                            once_flag = True
-                            continue
+
                     # 可拆分先对半拆
                     if len(trans_list) > 1:
                         LOGGER.warning("-> 对半拆分重试")
@@ -371,7 +244,7 @@ class CSakuraTranslate(BaseTranslate):
                 self.retry_count = 0
 
             self._set_temp_type("precise")
-            self.last_translation=resp
+            self.last_translation = resp
             return i + 1, result_trans_list
 
     async def batch_translate(
@@ -388,17 +261,16 @@ class CSakuraTranslate(BaseTranslate):
         translist_unhit: CTransList = [],
     ) -> CTransList:
 
-
         if len(translist_unhit) == 0:
             return []
         # 新文件重置chatbot
         if self.last_file_name != filename:
             self.reset_conversation()
             self.last_file_name = filename
-            #LOGGER.info(f"-> 开始翻译文件：{filename}")
+            # LOGGER.info(f"-> 开始翻译文件：{filename}")
         i = 0
-        if self.restore_context_mode and len(self.chatbot.conversation["default"]) == 1:
-            self.restore_context(translist_unhit, num_pre_request)
+
+        self.restore_context(translist_unhit, num_pre_request)
 
         trans_result_list = []
         len_trans_list = len(translist_unhit)
@@ -422,7 +294,7 @@ class CSakuraTranslate(BaseTranslate):
                     trans_result = trans_result[:num]
 
             i += num if num > 0 else 0
-            transl_counter["tran_count"]+=num
+            transl_counter["tran_count"] += num
             self.pj_config.bar(num)
             transl_step_count += 1
             if transl_step_count >= self.save_steps:
@@ -439,43 +311,7 @@ class CSakuraTranslate(BaseTranslate):
         return trans_result_list
 
     def reset_conversation(self):
-        self.chatbot.reset()
-
-    def _del_previous_message(self) -> None:
-        """删除历史消息，只保留最后一次的翻译结果，节约tokens"""
-        last_assistant_message = None
-        last_user_message = None
-        for message in self.chatbot.conversation["default"]:
-            if message["role"] == "assistant":
-                last_assistant_message = message
-        for message in self.chatbot.conversation["default"]:
-            if message["role"] == "user":
-                last_user_message = message
-                last_user_message["content"] = ""
-        system_message = self.chatbot.conversation["default"][0]
-        self.chatbot.conversation["default"] = [system_message]
-        if last_user_message:
-            self.chatbot.conversation["default"].append(last_user_message)
-        if last_assistant_message:
-            last_assistant_message["content"] = (
-                last_assistant_message["content"].replace("*EOF*", "").strip()
-            )
-            if self.transl_dropout > 0:
-                sp = last_assistant_message["content"].split("\n")
-                if len(sp) > self.transl_dropout:
-                    sp = sp[: 0 - self.transl_dropout]
-                    last_assistant_message["content"] = "\n".join(sp)
-            self.chatbot.conversation["default"].append(last_assistant_message)
-
-    def _del_last_answer(self):
-        # 删除上次输出
-        if self.chatbot.conversation["default"][-1]["role"] == "assistant":
-            self.chatbot.conversation["default"].pop()
-        elif self.chatbot.conversation["default"][-1]["role"] is None:
-            self.chatbot.conversation["default"].pop()
-        # 删除上次输入
-        if self.chatbot.conversation["default"][-1]["role"] == "user":
-            self.chatbot.conversation["default"].pop()
+        self.history_resp = ""
 
     def _set_temp_type(self, style_name: str):
         if self._current_temp_type == style_name:
@@ -491,16 +327,14 @@ class CSakuraTranslate(BaseTranslate):
 
         if "galtransl" in self.eng_type:
             if style_name == "precise":
-                temperature, top_p = 0.2, 0.8
+                temperature, top_p = 0.3, 0.8
                 frequency_penalty, presence_penalty = 0.1, 0.0
             elif style_name == "normal":
                 temperature, top_p = 0.6, 0.95
                 frequency_penalty, presence_penalty = 0.3, 0.0
 
-        self.chatbot.temperature = temperature
-        self.chatbot.top_p = top_p
-        self.chatbot.frequency_penalty = frequency_penalty
-        self.chatbot.presence_penalty = presence_penalty
+        self.temperature = temperature
+        self.frequency_penalty = frequency_penalty
 
     def restore_context(self, translist_unhit: CTransList, num_pre_request: int):
         if translist_unhit[0].prev_tran == None:
@@ -524,23 +358,10 @@ class CSakuraTranslate(BaseTranslate):
 
         tmp_context.reverse()
         json_lines = "\n".join(tmp_context)
-        self.chatbot.conversation["default"].append(
-            {
-                "role": "user",
-                "content": f"(历史翻译请求)",
-            }
-        )
-        self.chatbot.conversation["default"].append(
-            {
-                "role": "assistant",
-                "content": f"{json_lines}",
-            }
-        )
         self.last_translation = json_lines
         LOGGER.info("-> 恢复了上下文")
 
     def check_degen_in_process(self, cn: str = ""):
-
         line_count = cn.count("\n") + 1
         if line_count < len(self.JP_LINE_LENS):  # 长度不超当前行直接放行
             if len(cn.split("\n")[-1]) < self.JP_LINE_LENS[line_count - 1]:
@@ -557,12 +378,6 @@ class CSakuraTranslate(BaseTranslate):
             return True
 
         return False
-
-    def _get_gpt_history(self):
-        gpt_history = []
-        for message in self.chatbot.conversation["default"]:
-            gpt_history.append(message["content"])
-        return "\n".join(gpt_history)
 
 
 if __name__ == "__main__":

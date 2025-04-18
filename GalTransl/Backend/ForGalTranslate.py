@@ -39,8 +39,9 @@ class ForGalTranslate(BaseTranslate):
             self.enhance_jailbreak = False
         self.trans_prompt = SMARTGAL_BETA_TRANS_PROMPT
         self.system_prompt = SMARTGAL_BETA_SYSTEM
-        self.history_resp = ""
+        self.last_translation = ""
         self._set_temp_type("precise")
+        self.init_chatbot(eng_type=eng_type, config=config)
 
         pass
 
@@ -68,10 +69,10 @@ class ForGalTranslate(BaseTranslate):
             assistant_prompt = ""
 
         messages = []
-        if self.history_resp:
-            messages.append({"role": "user", "content": "(上轮翻译请求)"})
-            messages.append({"role": "assistant", "content": self.history_resp})
         messages.append({"role": "system", "content": self.system_prompt})
+        if self.last_translation:
+            messages.append({"role": "user", "content": "(上轮翻译请求)"})
+            messages.append({"role": "assistant", "content": self.last_translation})
         messages.append({"role": "user", "content": prompt_req})
         if self.enhance_jailbreak:
             messages.append({"role": "assistant", "content": assistant_prompt})
@@ -82,7 +83,12 @@ class ForGalTranslate(BaseTranslate):
             )
             LOGGER.debug("->输出：")
             resp = ""
-            resp = await self.ask_chatbot(messages=messages)
+            resp = await self.ask_chatbot(
+                model_name=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+                frequency_penalty=self.frequency_penalty,
+            )
 
             result_text = resp
             result_text = result_text.split("ID\tNAME\tDST")[-1].strip()
@@ -198,7 +204,7 @@ class ForGalTranslate(BaseTranslate):
             # 翻译完成，收尾
             self._set_temp_type("precise")
             self.retry_count = 0
-            self.history_resp = resp
+            self.last_translation = resp
             break
         return i + 1, result_trans_list
 
@@ -215,7 +221,6 @@ class ForGalTranslate(BaseTranslate):
         translist_hit: CTransList = [],
         translist_unhit: CTransList = [],
     ) -> CTransList:
-
 
         if self.skipH:
             LOGGER.warning("skipH: 将跳过含有敏感词的句子")
@@ -278,7 +283,7 @@ class ForGalTranslate(BaseTranslate):
         return trans_result_list
 
     def reset_conversation(self):
-        self.history_resp = ""
+        self.last_translation = ""
 
     def _set_temp_type(self, style_name: str):
         if self._current_temp_type == style_name:
@@ -291,7 +296,6 @@ class ForGalTranslate(BaseTranslate):
             frequency_penalty = 0.1
         elif style_name == "normal":
             pass
-
         self.temperature = temperature
         self.frequency_penalty = frequency_penalty
 
@@ -315,7 +319,7 @@ class ForGalTranslate(BaseTranslate):
 
         tmp_context.reverse()
         json_lines = "\n".join(tmp_obj)
-        self.history_resp = "ID\tNAME\tDST\n" + json_lines
+        self.last_translation = "ID\tNAME\tDST\n" + json_lines
         LOGGER.info("-> 恢复了上下文")
 
 
