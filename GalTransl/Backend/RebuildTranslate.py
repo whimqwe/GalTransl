@@ -37,18 +37,13 @@ class CRebuildTranslate(BaseTranslate):
         gpt_dic: CGptDict = None,
         proofread: bool = False,
         retran_key: str = "",
+        translist_hit: CTransList = [],
+        translist_unhit: CTransList = [],
     ) -> CTransList:
-        trans_list_hit, _ = get_transCache_from_json_new(
-            trans_list,
-            cache_path,
-            retry_failed=retry_failed,
-            retran_key=retran_key,
-            ignr_post_jp=True,
-        )
 
-        if len(trans_list_hit) != len(trans_list):  # 不Build
+        if len(translist_hit) != len(trans_list):  # 不Build
             error_msg = get_text("cache_incomplete", GT_LANG, filename)
             LOGGER.error(error_msg)
             raise Exception(error_msg)
 
-        return trans_list_hit
+        return translist_hit

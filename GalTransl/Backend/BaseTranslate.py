@@ -172,7 +172,7 @@ class BaseTranslate:
         proofread: bool = False,
         retran_key: str = "",
     ) -> CTransList:
-        _, trans_list_unhit = get_transCache_from_json_new(
+        _, translist_unhit = get_transCache_from_json_new(
             trans_list,
             cache_file_path,
             retry_failed=retry_failed,
@@ -182,13 +182,13 @@ class BaseTranslate:
 
         if self.skipH:
             LOGGER.warning("skipH: 将跳过含有敏感词的句子")
-            trans_list_unhit = [
+            translist_unhit = [
                 tran
-                for tran in trans_list_unhit
+                for tran in translist_unhit
                 if not any(word in tran.post_jp for word in H_WORDS_LIST)
             ]
 
-        if len(trans_list_unhit) == 0:
+        if len(translist_unhit) == 0:
             return []
         # 新文件重置chatbot
         if self.last_file_name != filename:
@@ -203,17 +203,17 @@ class BaseTranslate:
             and len(self.chatbot.conversation["default"]) == 1
         ):
             if not proofread:
-                self.restore_context(trans_list_unhit, num_pre_request)
+                self.restore_context(translist_unhit, num_pre_request)
 
         trans_result_list = []
-        len_trans_list = len(trans_list_unhit)
+        len_trans_list = len(translist_unhit)
         transl_step_count = 0
         while i < len_trans_list:
             #await asyncio.sleep(1)
             trans_list_split = (
-                trans_list_unhit[i : i + num_pre_request]
+                translist_unhit[i : i + num_pre_request]
                 if (i + num_pre_request < len_trans_list)
-                else trans_list_unhit[i:]
+                else translist_unhit[i:]
             )
 
             dic_prompt = gpt_dic.gen_prompt(trans_list_split) if gpt_dic else ""

@@ -8,7 +8,7 @@ import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
 from GalTransl.i18n import get_text, GT_LANG
-
+from GalTransl.Cache import get_transCache_from_json_new
 
 from GalTransl.ConfigHelper import initDictList, CProjectConfig
 from GalTransl.Dictionary import CGptDict, CNormalDic
@@ -160,7 +160,7 @@ async def doLLMTranslate(
     
     total_lines=sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
-    with alive_bar(total=total_lines, title="翻译进度") as bar:
+    with alive_bar(total=total_lines, title="翻译进度",unit=" line") as bar:
         projectConfig.bar=bar
         # 创建所有任务
         all_tasks = []
@@ -213,7 +213,6 @@ async def doLLMTranslSingleChunk(
         part_info = f" (part {file_index+1}/{total_splits})" if total_splits > 1 else ""
         # LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
 
-        gptapi = await init_gptapi(projectConfig)
 
         LOGGER.debug(f"文件 {file_name} 分块 {file_index+1}/{total_splits}:")
         LOGGER.debug(f"  开始索引: {split_chunk.start_index}")
@@ -249,35 +248,51 @@ async def doLLMTranslSingleChunk(
                         get_text("plugin_execution_failed", GT_LANG, plugin.name, e)
                     )
 
-        # 执行翻译
-        await gptapi.batch_translate(
-            file_name,
-            cache_file_path,
+        translist_hit, translist_unhit = get_transCache_from_json_new(
             split_chunk.trans_list,
-            projectConfig.getKey("gpt.numPerRequestTranslate"),
+            cache_file_path,
             retry_failed=projectConfig.getKey("retranslFail"),
-            gpt_dic=gpt_dic,
+            proofread=False,
             retran_key=projectConfig.getKey("retranslKey"),
         )
 
-        # 执行校对（如果启用）
-        if projectConfig.getKey("gpt.enableProofRead"):
-            if (
-                "newbing" in gptapi.__class__.__name__.lower()
-                or "gpt4" in gptapi.__class__.__name__.lower()
-            ):
-                await gptapi.batch_translate(
-                    file_name,
-                    cache_file_path,
-                    split_chunk.trans_list,
-                    projectConfig.getKey("gpt.numPerRequestProofRead"),
-                    retry_failed=projectConfig.getKey("retranslFail"),
-                    gpt_dic=gpt_dic,
-                    proofread=True,
-                    retran_key=projectConfig.getKey("retranslKey"),
-                )
-            else:
-                LOGGER.warning("当前引擎不支持校对，跳过校对步骤")
+        if len(translist_hit) > 0:
+            projectConfig.bar(len(translist_hit))
+
+        if len(translist_unhit) > 0:
+            gptapi = await init_gptapi(projectConfig)
+            # 执行翻译
+            await gptapi.batch_translate(
+                file_name,
+                cache_file_path,
+                split_chunk.trans_list,
+                projectConfig.getKey("gpt.numPerRequestTranslate"),
+                retry_failed=projectConfig.getKey("retranslFail"),
+                gpt_dic=gpt_dic,
+                retran_key=projectConfig.getKey("retranslKey"),
+                translist_hit=translist_hit,
+                translist_unhit=translist_unhit,
+            )
+
+            # 执行校对（如果启用）
+            if projectConfig.getKey("gpt.enableProofRead"):
+                if (
+                    "newbing" in gptapi.__class__.__name__.lower()
+                    or "gpt4" in gptapi.__class__.__name__.lower()
+                ):
+                    await gptapi.batch_translate(
+                        file_name,
+                        cache_file_path,
+                        split_chunk.trans_list,
+                        projectConfig.getKey("gpt.numPerRequestProofRead"),
+                        retry_failed=projectConfig.getKey("retranslFail"),
+                        gpt_dic=gpt_dic,
+                        proofread=True,
+                        retran_key=projectConfig.getKey("retranslKey"),
+                    )
+                else:
+                    LOGGER.warning("当前引擎不支持校对，跳过校对步骤")
+            gptapi.clean_up()
 
         # 翻译后处理
         for tran in split_chunk.trans_list:
@@ -314,7 +329,6 @@ async def doLLMTranslSingleChunk(
                 "file_translation_completed", GT_LANG, file_name, part_info, et - st
             )
         )
-        gptapi.clean_up()
 
         split_chunk.update_file_finished_chunk()
         # 检查是否该文件的所有chunk都翻译完成

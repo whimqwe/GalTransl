@@ -384,17 +384,12 @@ class CSakuraTranslate(BaseTranslate):
         gpt_dic: CGptDict = None,
         proofread: bool = False,
         retran_key: str = "",
+        translist_hit: CTransList = [],
+        translist_unhit: CTransList = [],
     ) -> CTransList:
-        translist_hit, trans_list_unhit = get_transCache_from_json_new(
-            trans_list,
-            cache_file_path,
-            retry_failed=retry_failed,
-            proofread=False,
-            retran_key=retran_key,
-        )
-        if len(translist_hit) > 0:
-            self.pj_config.bar(len(translist_hit))
-        if len(trans_list_unhit) == 0:
+
+
+        if len(translist_unhit) == 0:
             return []
         # 新文件重置chatbot
         if self.last_file_name != filename:
@@ -403,16 +398,16 @@ class CSakuraTranslate(BaseTranslate):
             #LOGGER.info(f"-> 开始翻译文件：{filename}")
         i = 0
         if self.restore_context_mode and len(self.chatbot.conversation["default"]) == 1:
-            self.restore_context(trans_list_unhit, num_pre_request)
+            self.restore_context(translist_unhit, num_pre_request)
 
         trans_result_list = []
-        len_trans_list = len(trans_list_unhit)
+        len_trans_list = len(translist_unhit)
         transl_step_count = 0
 
         while i < len_trans_list:
             # await asyncio.sleep(1)
 
-            trans_list_split = trans_list_unhit[i : i + num_pre_request]
+            trans_list_split = translist_unhit[i : i + num_pre_request]
             dic_prompt = (
                 gpt_dic.gen_prompt(trans_list_split, type="sakura")
                 if gpt_dic != None
@@ -507,12 +502,12 @@ class CSakuraTranslate(BaseTranslate):
         self.chatbot.frequency_penalty = frequency_penalty
         self.chatbot.presence_penalty = presence_penalty
 
-    def restore_context(self, trans_list_unhit: CTransList, num_pre_request: int):
-        if trans_list_unhit[0].prev_tran == None:
+    def restore_context(self, translist_unhit: CTransList, num_pre_request: int):
+        if translist_unhit[0].prev_tran == None:
             return
         tmp_context = []
         num_count = 0
-        current_tran = trans_list_unhit[0].prev_tran
+        current_tran = translist_unhit[0].prev_tran
         while current_tran != None:
             if current_tran.pre_zh == "":
                 current_tran = current_tran.prev_tran

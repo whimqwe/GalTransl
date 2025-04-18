@@ -469,25 +469,20 @@ class CGPT4Translate(BaseTranslate):
         gpt_dic: CGptDict = None,
         proofread: bool = False,
         retran_key: str = "",
+        translist_hit: CTransList = [],
+        translist_unhit: CTransList = [],
     ) -> CTransList:
-        translist_hit, trans_list_unhit = get_transCache_from_json_new(
-            trans_list,
-            cache_file_path,
-            retry_failed=retry_failed,
-            proofread=proofread,
-            retran_key=retran_key,
-        )
 
         if self.skipH:
             LOGGER.warning("skipH: 将跳过含有敏感词的句子")
-            trans_list_unhit = [
+            translist_unhit = [
                 tran
-                for tran in trans_list_unhit
+                for tran in translist_unhit
                 if not any(word in tran.post_jp for word in H_WORDS_LIST)
             ]
         if len(translist_hit) > 0:
             self.pj_config.bar(len(translist_hit))
-        if len(trans_list_unhit) == 0:
+        if len(translist_unhit) == 0:
             return []
         # 新文件重置chatbot
         if self.last_file_name != filename:
@@ -501,18 +496,18 @@ class CGPT4Translate(BaseTranslate):
             and len(self.chatbot.conversation["default"]) == 1
         ):
             if not proofread:
-                self.restore_context(trans_list_unhit, num_pre_request)
+                self.restore_context(translist_unhit, num_pre_request)
 
         trans_result_list = []
-        len_trans_list = len(trans_list_unhit)
+        len_trans_list = len(translist_unhit)
         transl_step_count = 0
 
         while i < len_trans_list:
             #await asyncio.sleep(1)
             trans_list_split = (
-                trans_list_unhit[i : i + num_pre_request]
+                translist_unhit[i : i + num_pre_request]
                 if (i + num_pre_request < len_trans_list)
-                else trans_list_unhit[i:]
+                else translist_unhit[i:]
             )
 
             dic_prompt = gpt_dic.gen_prompt(trans_list_split) if gpt_dic else ""
@@ -593,12 +588,12 @@ class CGPT4Translate(BaseTranslate):
         self.chatbot.frequency_penalty = frequency_penalty
         self.chatbot.presence_penalty = presence_penalty
 
-    def restore_context(self, trans_list_unhit: CTransList, num_pre_request: int):
-        if trans_list_unhit[0].prev_tran == None:
+    def restore_context(self, translist_unhit: CTransList, num_pre_request: int):
+        if translist_unhit[0].prev_tran == None:
             return
         tmp_context = []
         num_count = 0
-        current_tran = trans_list_unhit[0].prev_tran
+        current_tran = translist_unhit[0].prev_tran
         while current_tran != None:
             if current_tran.pre_zh == "":
                 current_tran = current_tran.prev_tran
