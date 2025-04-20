@@ -45,24 +45,15 @@
   解压到任意位置，例如 `D:\GalTransl`
 
   * Python   
-  安装 Python 3.11/3.12。 [下载](https://www.python.org/downloads/release/python-3117/)   
+  安装 Python 3.11.9。 [下载](https://www.python.org/downloads/release/python-3119/)   
   **安装时勾选下方 add Python to path**   
 
   * 安装Python依赖   
   安装 Python 后
   
-  如果你是**初学者**，可以直接双击`安装、更新依赖.bat`来安装本项目需要的依赖。
+可以直接双击`安装、更新依赖.bat`来安装本项目需要的依赖。
 
-  如果你**熟悉python**，本项目提供Poetry进行依赖管理，可以通过以下命令安装并运行程序：
 
-  ```
-  cmd
-  pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-  pip install poetry
-  poetry install
-  cd 到本仓库目录
-  poetry shell
-  python -m GalTransl -p 你的项目路径 -t 翻译后端
   ```
 
 ## 实用工具
