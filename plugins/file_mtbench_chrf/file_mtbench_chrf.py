@@ -48,7 +48,7 @@ class file_plugin(GFilePlugin):
                 continue
             message = message.replace("\n", "").replace("\r", "")
             ref = ref.replace("\n", "").replace("\r", "")
-            stats = get_chrf_statistics(message, ref)  # 获取统计数据而不是分数
+            stats = get_chrf_statistics(message, ref, n=4)  # 获取统计数据而不是分数
             file_stats=add_stats(file_stats,stats)
             self.all_stats=add_stats(self.all_stats,stats)
             item['chrf_score'] = compute_f_score(stats)  # 单句的分数仍然计算

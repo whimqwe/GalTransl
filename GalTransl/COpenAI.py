@@ -2,9 +2,6 @@
 CloseAI related classes
 """
 
-import os
-from turtle import title
-from httpx import AsyncClient
 import asyncio
 from asyncio import gather
 from alive_progress import alive_bar
