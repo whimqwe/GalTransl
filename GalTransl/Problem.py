@@ -3,7 +3,7 @@
 """
 from GalTransl.CSentense import CTransList
 from GalTransl.ConfigHelper import CProjectConfig, CProblemType
-from GalTransl.Utils import get_most_common_char, contains_japanese, contains_english
+from GalTransl.Utils import get_most_common_char, contains_japanese, contains_english,punctuation_zh
 from GalTransl.Dictionary import CGptDict
 
 def find_problems(
@@ -89,14 +89,18 @@ def find_problems(
                 if contains_english(post_zh): # 修了的不显示
                     problem_list.append("引入英文")
         if CProblemType.语言不通 in find_type:
-            import langid
-            result=langid.classify(pre_zh)
-            lang_id=result[0]   
-            if lang_id=="zh":
-                lang_id="zh-cn"
-            if lang_id!=projectConfig.target_lang:
-                if lang_id!="ja":
-                    problem_list.append(f"语言不通")
+            tmp_text=pre_zh
+            for chr in punctuation_zh:
+                tmp_text=tmp_text.replace(chr,"")
+            if len(tmp_text)>3:
+                import langid
+                result=langid.classify(tmp_text)
+                lang_id=result[0]   
+                if lang_id=="zh":
+                    lang_id="zh-cn"
+                if lang_id!=projectConfig.target_lang:
+                    if lang_id!="ja":
+                        problem_list.append(f"语言不通")
 
         if arinashi_dict != {}:
             for key, value in arinashi_dict.items():

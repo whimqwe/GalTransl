@@ -9,6 +9,16 @@ from re import compile
 import requests
 
 PATTERN_CODE_BLOCK = compile(r"```([\w]*)\n([\s\S]*?)\n```")
+whitespace = ' \t\n\r\v\f'
+ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+ascii_letters = ascii_lowercase + ascii_uppercase
+digits = '0123456789'
+hexdigits = digits + 'abcdef' + 'ABCDEF'
+octdigits = '01234567'
+punctuation = r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
+punctuation_zh="。？！…（）；：《》「」『』【】"
+printable = digits + ascii_letters + punctuation + whitespace
 
 def get_most_common_char(input_text: str) -> Tuple[str, int]:
     """
