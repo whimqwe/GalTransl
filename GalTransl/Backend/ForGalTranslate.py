@@ -50,7 +50,7 @@ class ForGalTranslate(BaseTranslate):
         for i, trans in enumerate(trans_list):
             speaker = trans.speaker if trans.speaker else "null"
             src_text = trans.post_jp
-            src_text = src_text.replace("\r\n", "\\n").replace("\t", "\\t")
+            src_text = src_text.replace("\r\n", "\\n").replace("\t", "\\t").replace("\n", "\\n")
             tmp_obj = f"{trans.index}\t{speaker}\t{src_text}"
             input_list.append(tmp_obj)
 
@@ -155,6 +155,8 @@ class ForGalTranslate(BaseTranslate):
                     line_dst = line_dst.replace("\\n", "\r\n")
                 if "\t" in trans_list[i].post_jp:
                     line_dst = line_dst.replace("\\t", "\t")
+                if "\n" in trans_list[i].post_jp:
+                    line_dst = line_dst.replace("\\n", "\n")
                 if "……" in trans_list[i].post_jp and "..." in line_dst:
                     line_dst = line_dst.replace("......", "……")
                     line_dst = line_dst.replace("...", "……")
