@@ -26,6 +26,34 @@ from GalTransl.CSplitter import (
 )
 
 
+async def update_progress_title(
+    bar, semaphore, workersPerProject
+):
+    """异步任务，用于动态更新 alive_bar 的标题以显示活动工作线程数。"""
+    base_title = "翻译进度"
+    while True:
+        try:
+            # 计算当前活动的任务数
+            # semaphore.acquire() 会减少 _value，semaphore.release() 会增加 _value
+            # 因此，活动任务数 = 总容量 - 当前可用容量
+            active_workers = workersPerProject - semaphore._value
+            # 确保 active_workers 不会是负数（以防万一）
+            active_workers = max(0, active_workers)
+            new_title = f"{base_title} [活跃任务: {active_workers}/{workersPerProject}]"
+            bar.title(new_title)
+            # 每隔一段时间更新一次，避免过于频繁
+            await asyncio.sleep(0.5)
+        except asyncio.CancelledError:
+            # 当任务被取消时，设置最终标题并退出循环
+            bar.title(f"{base_title} [处理完成]")
+            break
+        except Exception as e:
+            # 记录任何其他异常并停止更新
+            LOGGER.error(f"更新进度条标题时出错: {e}")
+            bar.title(f"{base_title} [更新出错]")
+            break
+
+
 async def doLLMTranslate(
     projectConfig: CProjectConfig,
 ) -> bool:
@@ -163,9 +191,16 @@ async def doLLMTranslate(
     # 初始化共享的 gptapi 实例
     gptapi = await init_gptapi(projectConfig)
 
+    title_update_task = None # 初始化任务变量
     with alive_bar(total=total_lines, title="翻译进度",unit=" line") as bar:
         projectConfig.bar=bar
-        # 创建所有任务
+
+        # 启动后台任务来更新进度条标题
+        title_update_task = asyncio.create_task(
+            update_progress_title(bar, semaphore, workersPerProject)
+        )
+
+        # 创建所有翻译任务
         all_tasks = []
         for chunk in ordered_chunks:
             all_tasks.append(
@@ -177,9 +212,18 @@ async def doLLMTranslate(
                 )
             )
 
-        # 使用信号量控制并发数量，同时启动所有任务
-        await asyncio.gather(*[run_task(task) for task in all_tasks])
-
+        try:
+            # 使用信号量控制并发数量，同时启动所有翻译任务
+            await asyncio.gather(*[run_task(task) for task in all_tasks])
+        finally:
+            # 确保无论 gather 成功还是失败，都取消标题更新任务
+            if title_update_task:
+                title_update_task.cancel()
+                # 等待任务实际被取消（可选，但有助于确保清理）
+                try:
+                    await title_update_task
+                except asyncio.CancelledError:
+                    pass # 捕获预期的取消错误
 
 
 async def doLLMTranslSingleChunk(

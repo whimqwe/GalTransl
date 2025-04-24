@@ -77,7 +77,7 @@ TRANSLATOR_SUPPORTED = {
         "en": "(For v1.0 prompt) Locally trained model for light novel/Gal translation, available in multiple sizes"
     },
     "galtransl-v3": {
-        "zh-cn": "为翻译Gal基于Sakura进一步优化的本地小模型，可运行在6G空闲显存的游戏显卡和MacBook上",
+        "zh-cn": "为翻译Gal基于Sakura进一步优化的本地模型",
         "en": "Further optimized local small model based on Sakura for Gal translation, can run on gaming GPUs with 6GB VRAM and MacBooks"
     },
     "GenDic": {
