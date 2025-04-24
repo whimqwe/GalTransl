@@ -49,15 +49,14 @@ class ForGalTranslate(BaseTranslate):
         input_list = []
         for i, trans in enumerate(trans_list):
             speaker = trans.speaker if trans.speaker else "null"
+            speaker = speaker.replace("\r\n", "").replace("\t", "").replace("\n", "")
             src_text = trans.post_jp
             src_text = src_text.replace("\r\n", "\\n").replace("\t", "\\t").replace("\n", "\\n")
             tmp_obj = f"{trans.index}\t{speaker}\t{src_text}"
             input_list.append(tmp_obj)
-
         input_src = "\n".join(input_list)
 
         prompt_req = self.trans_prompt
-
         prompt_req = prompt_req.replace("[Input]", input_src)
         prompt_req = prompt_req.replace("[Glossary]", gptdict)
         prompt_req = prompt_req.replace("[SourceLang]", self.source_lang)
