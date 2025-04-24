@@ -155,6 +155,8 @@ class ProjectManager:
             print(get_text("translation_completed", GT_LANG))
             self.user_input = ""
             self.translator = ""
+            self.project_dir = ""
+            self.config_file_name = ""
 
             os.system("pause")
             os.system("cls")
