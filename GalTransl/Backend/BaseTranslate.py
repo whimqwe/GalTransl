@@ -148,11 +148,11 @@ class BaseTranslate:
                 return response.choices[0].message.content
             except RateLimitError as e:
                 LOGGER.debug(f"[RateLimit] {e}")
-                time.sleep(3)
+                asyncio.sleep(self.wait_time)
             except Exception as e:
                 retry_count += 1
                 LOGGER.error(f"[API Error] {e}")
-                time.sleep(1)
+                asyncio.sleep(2)
 
     def clean_up(self):
         pass
