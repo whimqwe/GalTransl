@@ -144,7 +144,7 @@ async def doLLMTranslate(
 
 
     if "dump-name" in eng_type:
-        dump_name_table_from_chunks(total_chunks, projectConfig)
+        await dump_name_table_from_chunks(total_chunks, projectConfig)
         return True
 
     if eng_type == "GenDic":
@@ -153,7 +153,7 @@ async def doLLMTranslate(
         return True
 
     if not isPathExists(name_replaceDict_path):
-        dump_name_table_from_chunks(total_chunks, projectConfig)
+        await dump_name_table_from_chunks(total_chunks, projectConfig)
         projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
 
     async def run_task(task_func):
