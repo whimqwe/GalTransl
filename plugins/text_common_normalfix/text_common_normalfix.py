@@ -40,9 +40,21 @@ class text_common_normalfix(GTextPlugin):
                 tran.post_zh = tran.post_zh.replace("\n", "\r\n")
             if tran.post_zh.startswith("\r\n") and not tran.post_jp.startswith("\r\n"):
                 tran.post_zh = tran.post_zh[2:]
+        
+
         return tran
 
     def after_dst_processed(self, tran: CSentense) -> CSentense:
+        lb=""
+        if "\r\n" in tran.post_jp:
+            lb="\r\n"
+        elif "\n" in tran.post_jp:
+            lb="\n"
+        elif "\\n" in tran.post_jp:
+            lb="\\n"
+        while tran.post_zh.count(lb)>tran.pre_jp.count(lb):
+            tran.post_zh = tran.post_zh.replace(lb, "", 1)
+
         return tran
 
     def _remove_first_symbol(self, tran, line_break_symbol="\\n"):
