@@ -222,20 +222,15 @@ class ForGalTranslate(BaseTranslate):
         translist_hit: CTransList = [],
         translist_unhit: CTransList = [],
     ) -> CTransList:
-
+        if len(translist_unhit) == 0:
+            return []
         if self.skipH:
-            LOGGER.warning("skipH: 将跳过含有敏感词的句子")
             translist_unhit = [
                 tran
                 for tran in translist_unhit
                 if not any(word in tran.post_jp for word in H_WORDS_LIST)
             ]
 
-        if len(translist_hit) > 0:
-            self.pj_config.bar(len(translist_hit))
-
-        if len(translist_unhit) == 0:
-            return []
         # 新文件重置chatbot
         if self.last_file_name != filename:
             self.reset_conversation()
