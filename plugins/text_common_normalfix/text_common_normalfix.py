@@ -18,7 +18,7 @@ class text_common_normalfix(GTextPlugin):
         if tran.post_jp.endswith("\\n"):
             tran.post_jp = tran.post_jp[:-2]
             tran.right_symbol = "\\n" + tran.right_symbol
-            
+
         if tran.post_jp.startswith("\n"):
             tran.post_jp = tran.post_jp[1:]
             tran.left_symbol = tran.left_symbol + "\n"
@@ -40,19 +40,20 @@ class text_common_normalfix(GTextPlugin):
                 tran.post_zh = tran.post_zh.replace("\n", "\r\n")
             if tran.post_zh.startswith("\r\n") and not tran.post_jp.startswith("\r\n"):
                 tran.post_zh = tran.post_zh[2:]
-        
 
         return tran
 
     def after_dst_processed(self, tran: CSentense) -> CSentense:
-        lb=""
+        lb = ""
         if "\r\n" in tran.post_jp:
-            lb="\r\n"
+            lb = "\r\n"
         elif "\n" in tran.post_jp:
-            lb="\n"
+            lb = "\n"
         elif "\\n" in tran.post_jp:
-            lb="\\n"
-        while tran.post_zh.count(lb)>tran.pre_jp.count(lb):
+            lb = "\\n"
+        if lb == "":
+            return tran
+        while tran.post_zh.count(lb) > tran.pre_jp.count(lb):
             tran.post_zh = tran.post_zh.replace(lb, "", 1)
 
         return tran
