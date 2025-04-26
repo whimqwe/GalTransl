@@ -103,6 +103,8 @@ class BaseTranslate:
         )
         self.token = self.tokenProvider.getToken()
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
+        self.api_timeout=config.getBackendConfigSection(section_name).get("apiTimeout", 30)
+        self.rateLimitWait=config.getBackendConfigSection(section_name).get("rateLimitWait", self.wait_time)
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()
             client = httpx.AsyncClient(proxy=self.proxy.addr if self.proxy else None)
@@ -142,14 +144,14 @@ class BaseTranslate:
                     temperature=temperature,
                     frequency_penalty=frequency_penalty,
                     max_tokens=max_tokens,
-                    timeout=30,
+                    timeout=self.api_timeout,
                 )
                 if stream:
                     return response
                 return response.choices[0].message.content
             except RateLimitError as e:
                 LOGGER.debug(f"[RateLimit] {e}")
-                await asyncio.sleep(self.wait_time)
+                await asyncio.sleep(self.rateLimitWait)
             except Exception as e:
                 retry_count += 1
                 try:
