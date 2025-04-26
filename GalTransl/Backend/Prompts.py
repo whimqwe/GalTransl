@@ -245,14 +245,14 @@ Then start translating line by line, each line requires:
 3. Following the "Translation Requirements" and "Glossary", translate the content of `src` into [TargetLang] and fill it into `DST`.
 Then stop outputting, without any other explanations or notes.
 
-## Input
+## [SourceLang] Input
 ID\tNAME\tSRC
 [Input]
 
 ## Glossary
 [Glossary]
 
-## Output
+## [TargetLang] Output
 ```
 ID\tNAME\tDST
 """
