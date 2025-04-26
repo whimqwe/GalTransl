@@ -16,7 +16,7 @@ from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes2
 from GalTransl.Backend.Prompts import (
     SMARTGAL_BETA_SYSTEM,
-    SMARTGAL_BETA_TRANS_PROMPT,
+    FORGAL_TRANS_PROMPT_EN,
     H_WORDS_LIST,
 )
 from GalTransl.Backend.BaseTranslate import BaseTranslate
@@ -37,7 +37,7 @@ class ForGalTranslate(BaseTranslate):
             self.enhance_jailbreak = val
         else:
             self.enhance_jailbreak = False
-        self.trans_prompt = SMARTGAL_BETA_TRANS_PROMPT
+        self.trans_prompt = FORGAL_TRANS_PROMPT_EN
         self.system_prompt = SMARTGAL_BETA_SYSTEM
         self.last_translation = ""
         self._set_temp_type("precise")
@@ -164,6 +164,8 @@ class ForGalTranslate(BaseTranslate):
                 trans_list[i].post_zh = line_dst
                 trans_list[i].trans_by = self.model_name
                 result_trans_list.append(trans_list[i])
+                if i >= len(trans_list) - 1:
+                    break
 
             if error_flag:
                 LOGGER.error(f"-> [解析错误]解析结果出错：{error_message}")

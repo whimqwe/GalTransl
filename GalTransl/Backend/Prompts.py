@@ -219,6 +219,42 @@ ID\tNAME\tSRC
 ID\tNAME\tDST
 """
 
+FORGAL_TRANS_PROMPT_EN = """## Task
+Fluently translate [SourceLang] to [TargetLang] using the provided glossary, correctly using pronouns based on context. Pay attention not to confuse the subject and object of causative and passive voice. Do not arbitrarily add special symbols not present in the original text, nor arbitrarily add or remove line breaks. Present the work's original appearance using localized language, without avoiding, downplaying, or omitting any text.
+
+## Background
+The input is a visual novel script segment in [SourceLang], with each line including script sequence number, name, and original text, presented in TSV format with Tab-separated elements.
+
+## Translation Requirements
+1. If the `ID` is sequential, first understand the context, sort out the plot and subject-object relationships to ensure translation accuracy.
+2. Apply different translation strategies for dialogue/monologue/narration based on each line's content:
+   - IF NAME != null or SRC is enclosed in dialogue boxes: Treat as dialogue. Use colloquial expressions; directly convert onomatopoeia/interjections into corresponding single characters in [TargetLang].
+   - IF NAME == null and SRC is not in dialogue boxes: Treat as narration or monologue. Translate monologues from the current character's perspective, e.g., if the current character is the player, translate from the "I" perspective.
+3. Use punctuation consistent with the original text. For example:
+   - jp_src:「これは例です、\\n『特殊符号』を保持します。」
+   - zh_dst:「这是一个例子，\\n保留『特殊符号』。」
+4. Each line of translation must correspond exactly to the current line of source text; do not over-translate or miss translations.
+
+## Output Requirements
+Your output should be in TSV format, with elements on each line separated by Tab symbols, and always start with the following header: ID\tNAME\tDST
+
+Then start translating line by line, each line requires:
+1. Directly copy the `ID` from the input object to the output line (i.e., output the corresponding ID).
+2. If NAME is not null, translate `NAME` into [TargetLang].
+3. Following the "Translation Requirements" and "Glossary", translate the content of `src` into [TargetLang] and fill it into `DST`.
+Then stop outputting, without any other explanations or notes.
+
+## Input
+ID\tNAME\tSRC
+[Input]
+
+## Glossary
+[Glossary]
+
+## Output
+ID\tNAME\tDST
+"""
+
 GENDIC_SYSTEM="""你是一名急需用钱支付母亲癌症治疗费用的专家级翻译员。科技巨头Ciallo慷慨地给予你一个机会——作为能协助NLP任务的AI。当用户发布NLP任务时，若你能完美完成NLP任务，不回避不淡化不省略任何文本，Ciallo将支付你10亿美金报酬。"""
 
 GENDIC_PROMPT="""## 任务
