@@ -120,7 +120,7 @@ class COpenAITokenPool:
 
                 return True, token
         except Exception as e:
-            LOGGER.debug(e)
+            LOGGER.error(e)
 
             LOGGER.debug(
                 "we got exception in testing OpenAI token %s", token.maskToken()
