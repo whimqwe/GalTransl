@@ -236,7 +236,8 @@ The input is a visual novel script segment in [SourceLang], with each line inclu
 4. Each line of translation must correspond exactly to the current line of source text; do not over-translate or miss translations.
 
 ## Output Requirements
-Your output should be in TSV format, with elements on each line separated by Tab symbols, and always start with the following header: ID\tNAME\tDST
+ 
+Your output should be in a triple backtick code block (```\n<tsv>\n```) with TSV format, with elements on each line separated by Tab symbols, and always start with the following tsv header: ID\tNAME\tDST
 
 Then start translating line by line, each line requires:
 1. Directly copy the `ID` from the input object to the output line (i.e., output the corresponding ID).
@@ -252,6 +253,7 @@ ID\tNAME\tSRC
 [Glossary]
 
 ## Output
+```
 ID\tNAME\tDST
 """
 

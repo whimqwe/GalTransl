@@ -100,6 +100,8 @@ class ForGalTranslate(BaseTranslate):
             for line in result_lines:
                 if "```" in line:
                     continue
+                if line.strip() == "":
+                    continue
                 if line.startswith("ID"):
                     continue
 
