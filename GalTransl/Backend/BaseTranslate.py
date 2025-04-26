@@ -142,6 +142,7 @@ class BaseTranslate:
                     temperature=temperature,
                     frequency_penalty=frequency_penalty,
                     max_tokens=max_tokens,
+                    timeout=30,
                 )
                 if stream:
                     return response
