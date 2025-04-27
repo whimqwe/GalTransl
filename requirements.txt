@@ -15,6 +15,7 @@ fasttext-predict
 InquirerPy
 alive-progress
 vaporetto
+langid
 
 # Tokenizer
 budoux
