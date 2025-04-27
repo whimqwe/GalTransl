@@ -79,7 +79,10 @@ def load_name_table(name_table_path: str) -> Dict[str, str]:
     except FileNotFoundError:
         LOGGER.warning(f"name替换表文件未找到: {name_table_path}")
     except Exception as e:
-        LOGGER.error(f"加载name替换表 '{name_table_path}' 时出错: {e}")
+        LOGGER.error(f"载入name替换表 '{name_table_path}' 时出错: {e}")
+    
+    if len(name_table)>0:
+        LOGGER.info(f"载入 {len(name_table)} 条name替换表: {name_table_path}")
     return name_table
 
 
@@ -106,7 +109,7 @@ async def dump_name_table_from_chunks(
     # Ask user for export format
     try:
         export_format = await inquirer.select(
-            message="请选择导出 name 表的格式:",
+            message="请选择导出 name 替换表的格式:",
             choices=[
                 Choice(value="csv", name="CSV (默认)"),
                 Choice(value="xlsx", name="Excel (.xlsx)"),

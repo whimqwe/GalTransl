@@ -79,9 +79,12 @@ async def doLLMTranslate(
     makedirs(cache_dir, exist_ok=True)
 
     # 初始化name替换表
-    name_replaceDict_path = joinpath(projectConfig.getProjectDir(), "name替换表.xlsx")
-    if isPathExists(name_replaceDict_path):
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
+    name_replaceDict_path_xlsx = joinpath(projectConfig.getProjectDir(), "name替换表.xlsx")
+    name_replaceDict_path_csv = joinpath(projectConfig.getProjectDir(), "name替换表.csv")
+    if isPathExists(name_replaceDict_path_csv):
+        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_csv)
+    elif isPathExists(name_replaceDict_path_xlsx):
+        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_xlsx)
 
     # 初始化字典
     projectConfig.pre_dic = CNormalDic(
@@ -152,7 +155,7 @@ async def doLLMTranslate(
         await gptapi.batch_translate(all_jsons)
         return True
 
-    if not isPathExists(name_replaceDict_path):
+    if not isPathExists(name_replaceDict_path_csv) and not isPathExists(name_replaceDict_path_xlsx):
         await dump_name_table_from_chunks(total_chunks, projectConfig)
         projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
 
@@ -309,7 +312,6 @@ async def doLLMTranslSingleChunk(
             projectConfig.bar(len(translist_hit))
 
         if len(translist_unhit) > 0:
-            # gptapi = await init_gptapi(projectConfig) # 移除此行
             # 执行翻译
             await gptapi.batch_translate(
                 file_name,
