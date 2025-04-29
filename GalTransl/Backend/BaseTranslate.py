@@ -126,6 +126,7 @@ class BaseTranslate:
         messages=[],
         temperature=0.5,
         frequency_penalty=0.1,
+        top_p=1,
         stream=False,
         max_tokens=None,
     ):
@@ -145,6 +146,7 @@ class BaseTranslate:
                     frequency_penalty=frequency_penalty,
                     max_tokens=max_tokens,
                     timeout=self.api_timeout,
+                    top_p=top_p,
                 )
                 if stream:
                     return response

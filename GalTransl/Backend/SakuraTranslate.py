@@ -145,6 +145,7 @@ class CSakuraTranslate(BaseTranslate):
                 messages=messages,
                 temperature=self.temperature,
                 frequency_penalty=self.frequency_penalty,
+                top_p=self.top_p,
                 max_tokens=len(input_str) * 2,
             )
 
@@ -321,21 +322,22 @@ class CSakuraTranslate(BaseTranslate):
 
         if style_name == "precise":
             temperature, top_p = 0.1, 0.8
-            frequency_penalty, presence_penalty = 0.1, 0.0
+            frequency_penalty = 0.1
         elif style_name == "normal":
             temperature, top_p = 0.4, 0.95
-            frequency_penalty, presence_penalty = 0.3, 0.0
+            frequency_penalty = 0.3
 
         if "galtransl" in self.eng_type:
             if style_name == "precise":
                 temperature, top_p = 0.3, 0.8
-                frequency_penalty, presence_penalty = 0.1, 0.0
+                frequency_penalty = 0.1
             elif style_name == "normal":
                 temperature, top_p = 0.6, 0.95
-                frequency_penalty, presence_penalty = 0.3, 0.0
+                frequency_penalty = 0.3
 
         self.temperature = temperature
         self.frequency_penalty = frequency_penalty
+        self.top_p = top_p
 
     def restore_context(self, translist_unhit: CTransList, num_pre_request: int):
         if translist_unhit[0].prev_tran == None:
