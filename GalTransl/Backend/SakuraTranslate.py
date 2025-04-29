@@ -333,7 +333,7 @@ class CSakuraTranslate(BaseTranslate):
                 frequency_penalty = 0.1
             elif style_name == "normal":
                 temperature, top_p = 0.6, 0.95
-                frequency_penalty = 0.3
+                frequency_penalty = 0.5
 
         self.temperature = temperature
         self.frequency_penalty = frequency_penalty

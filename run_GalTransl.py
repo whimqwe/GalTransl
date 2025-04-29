@@ -179,13 +179,11 @@ class ProjectManager:
         while True:
             self.print_program_info()
 
-            # 如果没有有效的项目路径，则请求用户输入
-            if not self.project_dir:
-                try:
-                    self.get_user_input()
-                except KeyboardInterrupt:
-                    print(f"\n{get_text('goodbye', GT_LANG)}")
-                    return
+            try:
+                self.get_user_input()
+            except KeyboardInterrupt:
+                print(f"\n{get_text('goodbye', GT_LANG)}")
+                return
             
             # 如果没有指定翻译器，则让用户选择
             if not self.translator:
@@ -213,9 +211,6 @@ class ProjectManager:
                 print(f"\nError during translation: {e}") # 添加错误处理
 
             # 重置状态以便下次循环或退出
-            self.user_input = "" # 清空上次输入，避免影响下次默认值
-            self.project_dir = "" # 清空项目目录，强制下次重新输入或使用命令行参数
-            self.config_file_name = CONFIG_FILENAME # 重置配置文件名
             self.translator = "" # 清空翻译器选择
 
             try:
