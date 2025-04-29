@@ -58,7 +58,8 @@ class CSakuraTranslate(BaseTranslate):
 
         self.last_translation = ""
         self.endpoint = endpoint
-
+        self.api_timeout=30
+        self.rateLimitWait=1
         self.init_chatbot(eng_type=eng_type, config=config)  # 模型初始化
         self._set_temp_type("precise")
 
