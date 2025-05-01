@@ -1,4 +1,4 @@
-import time, asyncio
+import asyncio
 import httpx
 from opencc import OpenCC
 from typing import Optional
@@ -103,7 +103,7 @@ class BaseTranslate:
         )
         self.token = self.tokenProvider.getToken()
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
-        self.api_timeout=config.getBackendConfigSection(section_name).get("apiTimeout", 30)
+        self.api_timeout=config.getBackendConfigSection(section_name).get("apiTimeout", 60)
         self.rateLimitWait=config.getBackendConfigSection(section_name).get("rateLimitWait", self.wait_time)
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()

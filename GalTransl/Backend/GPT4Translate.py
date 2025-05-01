@@ -143,7 +143,7 @@ class CGPT4Translate(BaseTranslate):
         )
 
         from GalTransl.Backend.revChatGPT.V3 import Chatbot as ChatbotV3
-
+        self.api_timeout=config.getBackendConfigSection(section_name).get("apiTimeout", 60)
         self.token = self.tokenProvider.getToken()
         eng_name = "gpt-4-1106-preview" if eng_name == "" else eng_name
 
@@ -194,7 +194,7 @@ class CGPT4Translate(BaseTranslate):
             system_prompt=system_prompt,
             engine=eng_name,
             api_address=f"{self.token.domain}{base_path}/chat/completions",
-            timeout=30,
+            timeout=self.api_timeout,
             response_format="json",
         )
         self.chatbot.trans_prompt = trans_prompt
