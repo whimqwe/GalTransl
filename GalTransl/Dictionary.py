@@ -425,7 +425,7 @@ class CGptDict:
                         promt += f"\t{dic.note}"
                     promt += "\n"
             if promt!= "":
-                promt = f"原文\t译文\t备注\n{promt}"
+                promt = f"SRC\tDST\tNOTE\n{promt}"
         return promt
 
     def check_dic_use(self, find_from_str: str, tran: CSentense):

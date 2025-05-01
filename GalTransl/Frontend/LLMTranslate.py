@@ -27,7 +27,7 @@ from GalTransl.CSplitter import (
 
 
 async def update_progress_title(
-    bar, semaphore, workersPerProject,projectConfig: CProjectConfig
+    bar, semaphore, workersPerProject, projectConfig: CProjectConfig
 ):
     """异步任务，用于动态更新 alive_bar 的标题以显示活动工作线程数。"""
     base_title = "翻译进度"
@@ -39,7 +39,7 @@ async def update_progress_title(
             active_workers = workersPerProject - semaphore._value
             # 确保 active_workers 不会是负数（以防万一）
             active_workers = max(0, active_workers)
-            projectConfig.active_workers = active_workers
+            projectConfig.active_workers = max(1, active_workers)
             # 更新标题
             new_title = f"{base_title} [活跃任务: {active_workers}/{workersPerProject}]"
             bar.title(new_title)
@@ -82,8 +82,12 @@ async def doLLMTranslate(
     makedirs(cache_dir, exist_ok=True)
 
     # 初始化name替换表
-    name_replaceDict_path_xlsx = joinpath(projectConfig.getProjectDir(), "name替换表.xlsx")
-    name_replaceDict_path_csv = joinpath(projectConfig.getProjectDir(), "name替换表.csv")
+    name_replaceDict_path_xlsx = joinpath(
+        projectConfig.getProjectDir(), "name替换表.xlsx"
+    )
+    name_replaceDict_path_csv = joinpath(
+        projectConfig.getProjectDir(), "name替换表.csv"
+    )
     if isPathExists(name_replaceDict_path_csv):
         projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_csv)
     elif isPathExists(name_replaceDict_path_xlsx):
@@ -144,10 +148,7 @@ async def doLLMTranslate(
                 if eng_type == "GenDic":
                     all_jsons.extend(json_list)
             except Exception as exc:
-                LOGGER.error(
-                    get_text("file_processing_error", GT_LANG, file_path, exc)
-                )
-
+                LOGGER.error(get_text("file_processing_error", GT_LANG, file_path, exc))
 
     if "dump-name" in eng_type:
         await dump_name_table_from_chunks(total_chunks, projectConfig)
@@ -158,7 +159,9 @@ async def doLLMTranslate(
         await gptapi.batch_translate(all_jsons)
         return True
 
-    if not isPathExists(name_replaceDict_path_csv) and not isPathExists(name_replaceDict_path_xlsx):
+    if not isPathExists(name_replaceDict_path_csv) and not isPathExists(
+        name_replaceDict_path_xlsx
+    ):
         await dump_name_table_from_chunks(total_chunks, projectConfig)
         projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
 
@@ -191,20 +194,20 @@ async def doLLMTranslate(
     elif soryBy == "size":
         total_chunks.sort(key=lambda x: x.chunk_size, reverse=True)
         ordered_chunks = total_chunks
-    
-    total_lines=sum([len(chunk.trans_list) for chunk in ordered_chunks])
+
+    total_lines = sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
     # 初始化共享的 gptapi 实例
     gptapi = await init_gptapi(projectConfig)
 
-    title_update_task = None # 初始化任务变量
-    projectConfig.active_workers = 0
-    with alive_bar(total=total_lines, title="翻译进度",unit=" line") as bar:
-        projectConfig.bar=bar
+    title_update_task = None  # 初始化任务变量
+    projectConfig.active_workers = 1
+    with alive_bar(total=total_lines, title="翻译进度", unit=" line") as bar:
+        projectConfig.bar = bar
 
         # 启动后台任务来更新进度条标题
         title_update_task = asyncio.create_task(
-            update_progress_title(bar, semaphore, workersPerProject,projectConfig)
+            update_progress_title(bar, semaphore, workersPerProject, projectConfig)
         )
 
         # 创建所有翻译任务
@@ -230,14 +233,14 @@ async def doLLMTranslate(
                 try:
                     await title_update_task
                 except asyncio.CancelledError:
-                    pass # 捕获预期的取消错误
+                    pass  # 捕获预期的取消错误
 
 
 async def doLLMTranslSingleChunk(
     semaphore: asyncio.Semaphore,
     split_chunk: SplitChunkMetadata,
     projectConfig: CProjectConfig,
-    gptapi: Any, # 添加 gptapi 参数
+    gptapi: Any,  # 添加 gptapi 参数
 ) -> Tuple[bool, List, List, str, SplitChunkMetadata]:
 
     async with semaphore:
@@ -268,7 +271,6 @@ async def doLLMTranslSingleChunk(
         )
         part_info = f" (part {file_index+1}/{total_splits})" if total_splits > 1 else ""
         # LOGGER.info(f"开始翻译 {file_name}{part_info}, 引擎类型: {eng_type}")
-
 
         LOGGER.debug(f"文件 {file_name} 分块 {file_index+1}/{total_splits}:")
         LOGGER.debug(f"  开始索引: {split_chunk.start_index}")

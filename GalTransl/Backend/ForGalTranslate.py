@@ -79,7 +79,7 @@ class ForGalTranslate(BaseTranslate):
         while True:  # 一直循环，直到得到数据
             if self.pj_config.active_workers == 1:
                 LOGGER.info(
-                    f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
+                    f"->{'翻译输入' if not proofread else '校对输入'}：\n{gptdict}\n{input_src}\n"
                 )
                 LOGGER.info("->输出：")
             resp = ""
@@ -88,6 +88,7 @@ class ForGalTranslate(BaseTranslate):
                 messages=messages,
                 temperature=self.temperature,
                 frequency_penalty=self.frequency_penalty,
+                stream=True,
             )
 
             result_text = resp

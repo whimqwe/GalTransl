@@ -58,11 +58,10 @@ class CSakuraTranslate(BaseTranslate):
 
         self.last_translation = ""
         self.endpoint = endpoint
-        self.api_timeout=30
-        self.rateLimitWait=1
+        self.api_timeout = 30
+        self.rateLimitWait = 1
         self.init_chatbot(eng_type=eng_type, config=config)  # 模型初始化
         self._set_temp_type("precise")
-
 
         pass
 
@@ -81,6 +80,9 @@ class CSakuraTranslate(BaseTranslate):
         endpoint = self.endpoint
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         base_path = "/v1" if not re.search(r"/v\d+$", endpoint) else ""
+        self.stream = True
+        if "sakura-share" in endpoint:
+            self.stream = False
 
         if eng_type == "sakura-v1.0":
             self.system_prompt = Sakura_SYSTEM_PROMPT010
@@ -139,7 +141,9 @@ class CSakuraTranslate(BaseTranslate):
 
         while True:  # 一直循环，直到得到数据
             if self.pj_config.active_workers == 1:
-                LOGGER.info(f"->'翻译输入'：{prompt_req}")
+                print(f"-> 字典输入: \n{gptdict}")
+                print(f"-> 翻译输入: \n{input_str}")
+                print("-> 输出: ")
 
             resp = ""
             resp = await self.ask_chatbot(
@@ -148,6 +152,7 @@ class CSakuraTranslate(BaseTranslate):
                 frequency_penalty=self.frequency_penalty,
                 top_p=self.top_p,
                 max_tokens=len(input_str) * 2,
+                stream=self.stream,
             )
 
             result_list = resp.strip("\n").split("\n")

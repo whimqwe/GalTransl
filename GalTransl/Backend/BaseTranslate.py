@@ -148,9 +148,19 @@ class BaseTranslate:
                     timeout=self.api_timeout,
                     top_p=top_p,
                 )
+                result=""
+                lastline=""
                 if stream:
-                    return response
-                return response.choices[0].message.content
+                    async for chunk in response:
+                        result += chunk.choices[0].delta.content or ""
+                        lastline+=chunk.choices[0].delta.content or ""
+                        if lastline.endswith("\n"):
+                            if self.pj_config.active_workers==1:
+                                print(lastline)
+                            lastline=""
+                else:
+                    result = response.choices[0].message.content
+                return result
             except RateLimitError as e:
                 LOGGER.debug(f"[RateLimit] {e}")
                 await asyncio.sleep(self.rateLimitWait)

@@ -107,14 +107,6 @@ class CGPT4Translate(BaseTranslate):
             self.enhance_jailbreak = val
         else:
             self.enhance_jailbreak = False
-        # 流式输出模式
-        if val := config.getKey("gpt.streamOutputMode"):
-            self.streamOutputMode = val
-        else:
-            self.streamOutputMode = False
-        if val := config.getKey("workersPerProject"):  # 多线程关闭流式输出
-            if val > 1:
-                self.streamOutputMode = False
 
         self.tokenProvider = token_pool
         if config.getKey("internals.enableProxy") == True:
@@ -271,23 +263,19 @@ class CGPT4Translate(BaseTranslate):
                     LOGGER.info(
                         get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
                     )
-                    if self.streamOutputMode:
-                        LOGGER.info(get_text("output", GT_LANG))
-                resp, data = "", ""
+                    LOGGER.info(get_text("output", GT_LANG))
+                resp, data,lastline = "", "",""
                 if not self.full_context_mode:
                     self._del_previous_message()
                 async for data in self.chatbot.ask_stream_async(
                     prompt_req, assistant_prompt=assistant_prompt
                 ):
-                    # if self.streamOutputMode:
-                    #     print(data, end="", flush=True)
                     resp += data
-                if self.pj_config.active_workers == 1:
-                    LOGGER.info(resp)
-                # if not self.streamOutputMode:
-                #     LOGGER.info(get_text("output_with_content", GT_LANG, resp))
-                # else:
-                #     print("")
+                    lastline+=data
+                    if lastline.endswith("\n"):
+                        if self.pj_config.active_workers==1:
+                            print(lastline)
+                        lastline=""
             except asyncio.CancelledError:
                 raise
             except RuntimeError:
