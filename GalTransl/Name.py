@@ -8,11 +8,13 @@ import csv
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 import asyncio
+import sys # Added for input
+import os
 
-
-def load_name_table(name_table_path: str) -> Dict[str, str]:
+def load_name_table(name_table_path: str,firstime_load:bool) -> Dict[str, str]:
     """
     This function loads the name table from the given path, supporting both .xlsx and .csv formats.
+    It prompts the user to edit the file and reloads ONCE if CN_Name entries are missing.
 
     Args:
     - name_table_path: The path to the name table (.xlsx or .csv).
@@ -20,69 +22,103 @@ def load_name_table(name_table_path: str) -> Dict[str, str]:
     Returns:
     - A dictionary containing the name table.
     """
-    name_table: Dict[str, str] = {}
-    _, file_extension = splitext(name_table_path)
-    file_extension = file_extension.lower()
 
-    try:
-        if file_extension == '.xlsx':
-            workbook = openpyxl.load_workbook(name_table_path)
-            sheet = workbook.active
-            
-            # Find header row for xlsx
-            header = [cell.value for cell in sheet[1]]
-            try:
-                jp_name_col_idx = header.index('JP_Name')
-                cn_name_col_idx = header.index('CN_Name')
-            except ValueError:
-                LOGGER.warning(f"name替换表 {name_table_path} 缺少 'JP_Name' 或 'CN_Name' 列")
-                return name_table
+    def _load_internal(path: str) -> tuple[Dict[str, str], List[str], bool]:
+        """Internal helper to load and check the name table."""
+        name_table_internal: Dict[str, str] = {}
+        missing_cn_names_internal: List[str] = []
+        _, file_extension = splitext(path)
+        file_extension = file_extension.lower()
+        file_loaded_successfully_internal = False
 
-            for row in sheet.iter_rows(min_row=2): # Skip header row
-                jp_name = row[jp_name_col_idx].value
-                cn_name = row[cn_name_col_idx].value
-
-                # Check if cn_name is not None or empty string
-                if jp_name is not None and cn_name is not None and str(cn_name).strip() != "":
-                    name_table[str(jp_name)] = str(cn_name)
-
-        elif file_extension == '.csv':
-            with open(name_table_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
-                reader = csv.reader(csvfile)
-                try:
-                    header = next(reader) # Read header row
-                except StopIteration:
-                    LOGGER.warning(f"CSV name替换表 {name_table_path} 为空或无法读取表头")
-                    return name_table
-                
+        try:
+            if file_extension == '.xlsx':
+                workbook = openpyxl.load_workbook(path)
+                sheet = workbook.active
+                header = [cell.value for cell in sheet[1]]
                 try:
                     jp_name_col_idx = header.index('JP_Name')
                     cn_name_col_idx = header.index('CN_Name')
                 except ValueError:
-                    LOGGER.warning(f"CSV name替换表 {name_table_path} 缺少 'JP_Name' 或 'CN_Name' 列")
-                    return name_table
+                    LOGGER.warning(f"name替换表 {path} 缺少 'JP_Name' 或 'CN_Name' 列")
+                    return {}, [], False
 
-                for row in reader:
-                    if len(row) > max(jp_name_col_idx, cn_name_col_idx):
-                        jp_name = row[jp_name_col_idx]
-                        cn_name = row[cn_name_col_idx]
+                for row_idx, row in enumerate(sheet.iter_rows(min_row=2), start=2):
+                    jp_name_cell = row[jp_name_col_idx]
+                    cn_name_cell = row[cn_name_col_idx]
+                    jp_name = jp_name_cell.value
+                    cn_name = cn_name_cell.value
 
-                        # Check if cn_name is not None or empty string
-                        if jp_name is not None and cn_name is not None and str(cn_name).strip() != "":
-                            name_table[str(jp_name)] = str(cn_name)
-                    else:
-                        LOGGER.warning(f"CSV name替换表 {name_table_path} 中发现格式不正确的行: {row}")
-        else:
-            LOGGER.warning(f"不支持的 name替换表 文件格式: {file_extension}. 请使用 .xlsx 或 .csv 文件。")
-            return name_table
-                
-    except FileNotFoundError:
-        LOGGER.warning(f"name替换表文件未找到: {name_table_path}")
-    except Exception as e:
-        LOGGER.error(f"载入name替换表 '{name_table_path}' 时出错: {e}")
+                    if jp_name is not None:
+                        jp_name_str = str(jp_name)
+                        if cn_name is None or str(cn_name).strip() == "":
+                            missing_cn_names_internal.append(jp_name_str)
+                        else:
+                            name_table_internal[jp_name_str] = str(cn_name)
+                file_loaded_successfully_internal = True
+
+            elif file_extension == '.csv':
+                with open(path, 'r', newline='', encoding='utf-8-sig') as csvfile:
+                    reader = csv.reader(csvfile)
+                    try:
+                        header = next(reader)
+                    except StopIteration:
+                        LOGGER.warning(f"CSV name替换表 {path} 为空或无法读取表头")
+                        return {}, [], False
+                    try:
+                        jp_name_col_idx = header.index('JP_Name')
+                        cn_name_col_idx = header.index('CN_Name')
+                    except ValueError:
+                        LOGGER.warning(f"CSV name替换表 {path} 缺少 'JP_Name' 或 'CN_Name' 列")
+                        return {}, [], False
+
+                    for row_idx, row in enumerate(reader, start=2):
+                        if len(row) > max(jp_name_col_idx, cn_name_col_idx):
+                            jp_name = row[jp_name_col_idx]
+                            cn_name = row[cn_name_col_idx]
+
+                            if jp_name is not None:
+                                jp_name_str = str(jp_name)
+                                if cn_name is None or str(cn_name).strip() == "":
+                                    missing_cn_names_internal.append(jp_name_str)
+                                else:
+                                    name_table_internal[jp_name_str] = str(cn_name)
+                        else:
+                            LOGGER.warning(f"CSV name替换表 {path} 中发现格式不正确的行 (行号 {row_idx}): {row}")
+                file_loaded_successfully_internal = True
+            else:
+                LOGGER.warning(f"不支持的 name替换表 文件格式: {file_extension}. 请使用 .xlsx 或 .csv 文件。")
+                return {}, [], False
+
+        except FileNotFoundError:
+            LOGGER.warning(f"name替换表文件未找到: {path}")
+            return {}, [], False
+        except Exception as e:
+            LOGGER.error(f"载入name替换表 '{path}' 时出错: {e}")
+            return {}, [], False
+
+        return name_table_internal, missing_cn_names_internal, file_loaded_successfully_internal
+
+    # First attempt to load
+    name_table, missing_cn_names, file_loaded_successfully = _load_internal(name_table_path)
     
-    if len(name_table)>0:
-        LOGGER.info(f"载入 {len(name_table)} 条name替换表: {name_table_path}")
+    table_base_name = os.path.basename(name_table_path)
+    # Check for missing CN_Names after the first attempt
+    if file_loaded_successfully and missing_cn_names and firstime_load:
+        LOGGER.warning(f"(这个提示只会在首次显示)\n\n'{table_base_name}' 中有name的翻译未补齐，可以现在编辑并补齐对应翻译，或以后编辑并选择刷新结果来补全name字段的翻译。")
+        print()
+        input("按 Enter 继续...")
+        # Second attempt to load after user edit
+        name_table, missing_cn_names, file_loaded_successfully = _load_internal(name_table_path)
+
+
+    # Log final status
+    if file_loaded_successfully:
+        LOGGER.info(f"成功载入 {len(name_table)} 条name替换表: {name_table_path}")
+        # Check again after reload
+        if missing_cn_names:
+             LOGGER.warning(f"'{table_base_name}' 中name翻译有缺失。程序将继续，但这些名字不会被替换。")
+
     return name_table
 
 

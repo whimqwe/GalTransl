@@ -27,7 +27,7 @@ from GalTransl.CSplitter import (
 
 
 async def update_progress_title(
-    bar, semaphore, workersPerProject:int, projectConfig: CProjectConfig
+    bar, semaphore, workersPerProject: int, projectConfig: CProjectConfig
 ):
     """异步任务，用于动态更新 alive_bar 的标题以显示活动工作线程数。"""
     base_title = "翻译进度"
@@ -39,7 +39,7 @@ async def update_progress_title(
             active_workers = workersPerProject - semaphore._value
             # 确保 active_workers 不会是负数（以防万一）
             active_workers = max(0, active_workers)
-            if active_workers==0:
+            if active_workers == 0:
                 projectConfig.active_workers = workersPerProject
             else:
                 projectConfig.active_workers = active_workers
@@ -189,21 +189,29 @@ async def doLLMTranslate(
     name_replaceDict_path_csv = joinpath(
         projectConfig.getProjectDir(), "name替换表.csv"
     )
+    name_replaceDict_firstime = False
     if not isPathExists(name_replaceDict_path_csv) and not isPathExists(
         name_replaceDict_path_xlsx
     ):
         await dump_name_table_from_chunks(total_chunks, projectConfig)
+        name_replaceDict_firstime = True
     if isPathExists(name_replaceDict_path_csv):
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_csv)
+        projectConfig.name_replaceDict = load_name_table(
+            name_replaceDict_path_csv, name_replaceDict_firstime
+        )
     elif isPathExists(name_replaceDict_path_xlsx):
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_xlsx)
+        projectConfig.name_replaceDict = load_name_table(
+            name_replaceDict_path_xlsx, name_replaceDict_firstime
+        )
 
     # 初始化共享的 gptapi 实例
     gptapi = await init_gptapi(projectConfig)
 
     title_update_task = None  # 初始化任务变量
     projectConfig.active_workers = 1
-    with alive_bar(total=total_lines, title="翻译进度", unit=" line", enrich_print=False) as bar:
+    with alive_bar(
+        total=total_lines, title="翻译进度", unit=" line", enrich_print=False
+    ) as bar:
         projectConfig.bar = bar
 
         # 启动后台任务来更新进度条标题
