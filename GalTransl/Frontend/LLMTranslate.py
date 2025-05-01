@@ -318,7 +318,7 @@ async def doLLMTranslSingleChunk(
         )
 
         if len(translist_hit) > 0:
-            projectConfig.bar(len(translist_hit))
+            projectConfig.bar(len(translist_hit), skipped=True)
 
         if len(translist_unhit) > 0:
             # 执行翻译
