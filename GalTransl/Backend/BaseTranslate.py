@@ -14,6 +14,11 @@ from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_jso
 from GalTransl.Dictionary import CGptDict
 from openai import RateLimitError, AsyncOpenAI
 import re
+from tenacity import (
+    retry,
+    wait_random_exponential,
+)  # for exponential backoff
+
 
 
 class BaseTranslate:
@@ -104,7 +109,6 @@ class BaseTranslate:
         self.token = self.tokenProvider.getToken()
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
         self.api_timeout=config.getBackendConfigSection(section_name).get("apiTimeout", 60)
-        self.rateLimitWait=config.getBackendConfigSection(section_name).get("rateLimitWait", self.wait_time)
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()
             client = httpx.AsyncClient(proxy=self.proxy.addr if self.proxy else None)
@@ -118,6 +122,7 @@ class BaseTranslate:
         )
         pass
 
+    @retry(wait=wait_random_exponential(min=1, max=60))
     async def ask_chatbot(
         self,
         model_name="",
@@ -130,47 +135,45 @@ class BaseTranslate:
         stream=False,
         max_tokens=None,
     ):
-        retry_count = 0
-        while True:
+        try:
+            if messages == []:
+                messages = [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ]
+            response = await self.chatbot.chat.completions.create(
+                model=model_name if model_name else self.model_name,
+                messages=messages,
+                stream=stream,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                max_tokens=max_tokens,
+                timeout=self.api_timeout,
+                top_p=top_p,
+            )
+            result=""
+            lastline=""
+            if stream:
+                async for chunk in response:
+                    result += chunk.choices[0].delta.content or ""
+                    lastline+=chunk.choices[0].delta.content or ""
+                    if lastline.endswith("\n"):
+                        if self.pj_config.active_workers==1:
+                            print(lastline)
+                        lastline=""
+            else:
+                result = response.choices[0].message.content
+            return result
+        except RateLimitError as e:
+            LOGGER.debug(f"[RateLimit] {e}")
+            raise e
+        except Exception as e:
             try:
-                if messages == []:
-                    messages = [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": prompt},
-                    ]
-                response = await self.chatbot.chat.completions.create(
-                    model=model_name if model_name else self.model_name,
-                    messages=messages,
-                    stream=stream,
-                    temperature=temperature,
-                    frequency_penalty=frequency_penalty,
-                    max_tokens=max_tokens,
-                    timeout=self.api_timeout,
-                    top_p=top_p,
-                )
-                result=""
-                lastline=""
-                if stream:
-                    async for chunk in response:
-                        result += chunk.choices[0].delta.content or ""
-                        lastline+=chunk.choices[0].delta.content or ""
-                        if lastline.endswith("\n"):
-                            if self.pj_config.active_workers==1:
-                                print(lastline)
-                            lastline=""
-                else:
-                    result = response.choices[0].message.content
-                return result
-            except RateLimitError as e:
-                LOGGER.debug(f"[RateLimit] {e}")
-                await asyncio.sleep(self.rateLimitWait)
-            except Exception as e:
-                retry_count += 1
-                try:
-                    LOGGER.error(f"[API Error] {response.model_extra['error']}")
-                except:
-                    LOGGER.error(f"[API Error] {e}")
-                await asyncio.sleep(2)
+                LOGGER.error(f"[API Error] {response.model_extra['error']}")
+            except:
+                LOGGER.error(f"[API Error] {e}")
+            raise e
+                
 
     def clean_up(self):
         pass

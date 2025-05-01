@@ -8,7 +8,6 @@ backendSpecific:
     rewriteModelName: "" # 设置自定义的模型名称，用于调用Claude/Deepseek等模型
     checkAvailable: true # 翻译前检查API是否可用
     apiTimeout: 60 # 请求超时时间，单位秒
-    rateLimitWait: 10 # 当触发rateLimit时等待时间，单位秒
 
   SakuraLLM: # Sakura/Galtransl API
     endpoints:
