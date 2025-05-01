@@ -27,7 +27,7 @@ from GalTransl.CSplitter import (
 
 
 async def update_progress_title(
-    bar, semaphore, workersPerProject, projectConfig: CProjectConfig
+    bar, semaphore, workersPerProject:int, projectConfig: CProjectConfig
 ):
     """异步任务，用于动态更新 alive_bar 的标题以显示活动工作线程数。"""
     base_title = "翻译进度"
@@ -39,7 +39,10 @@ async def update_progress_title(
             active_workers = workersPerProject - semaphore._value
             # 确保 active_workers 不会是负数（以防万一）
             active_workers = max(0, active_workers)
-            projectConfig.active_workers = max(1, active_workers)
+            if active_workers==0:
+                projectConfig.active_workers = workersPerProject
+            else:
+                projectConfig.active_workers = active_workers
             # 更新标题
             new_title = f"{base_title} [活跃任务: {active_workers}/{workersPerProject}]"
             bar.title(new_title)
