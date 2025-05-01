@@ -15,7 +15,7 @@ from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_jso
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes2
 from GalTransl.Backend.Prompts import (
-    SMARTGAL_BETA_SYSTEM,
+    FORGAL_SYSTEM,
     FORGAL_TRANS_PROMPT_EN,
     H_WORDS_LIST,
 )
@@ -38,10 +38,12 @@ class ForGalTranslate(BaseTranslate):
         else:
             self.enhance_jailbreak = False
         self.trans_prompt = FORGAL_TRANS_PROMPT_EN
-        self.system_prompt = SMARTGAL_BETA_SYSTEM
+        self.system_prompt = FORGAL_SYSTEM
         self.last_translation = ""
         self._set_temp_type("precise")
         self.init_chatbot(eng_type=eng_type, config=config)
+        if "qwen3" in self.model_name.lower():
+            self.system_prompt+="/no_think"
 
         pass
 

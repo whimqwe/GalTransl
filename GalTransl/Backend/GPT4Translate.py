@@ -178,6 +178,9 @@ class CGPT4Translate(BaseTranslate):
                 trans_prompt = DEEPSEEK_TRANS_PROMPT
                 proofread_prompt = DEEPSEEK_PROOFREAD_PROMPT
 
+        # qwen3 
+        if eng_type=="gpt4" and "qwen3" in eng_name.lower():
+            system_prompt = system_prompt+"/no_think"
         base_path = "/v1" if not re.search(r"/v\d+$", self.token.domain) else ""
         self.chatbot = ChatbotV3(
             api_key=self.token.token,

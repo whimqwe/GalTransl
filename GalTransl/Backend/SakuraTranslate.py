@@ -60,6 +60,12 @@ class CSakuraTranslate(BaseTranslate):
         self.endpoint = endpoint
         self.api_timeout = 30
         self.rateLimitWait = 1
+        if eng_type == "sakura-v1.0":
+            self.system_prompt = Sakura_SYSTEM_PROMPT010
+            self.trans_prompt = Sakura_TRANS_PROMPT010
+        if "galtransl" in eng_type:
+            self.system_prompt = GalTransl_SYSTEM_PROMPT
+            self.trans_prompt = GalTransl_TRANS_PROMPT_V3
         self.init_chatbot(eng_type=eng_type, config=config)  # 模型初始化
         self._set_temp_type("precise")
 
@@ -83,13 +89,6 @@ class CSakuraTranslate(BaseTranslate):
         self.stream = True
         if "sakura-share" in endpoint:
             self.stream = False
-
-        if eng_type == "sakura-v1.0":
-            self.system_prompt = Sakura_SYSTEM_PROMPT010
-            self.trans_prompt = Sakura_TRANS_PROMPT010
-        if "galtransl" in eng_type:
-            self.system_prompt = GalTransl_SYSTEM_PROMPT
-            self.trans_prompt = GalTransl_TRANS_PROMPT_V3
 
         if self.proxyProvider:
             self.proxy = self.proxyProvider.getProxy()
