@@ -161,6 +161,31 @@ class ProjectManager:
         except Exception as e:
             print(get_text("error_creating_shortcut", GT_LANG, str(e)))
 
+    def start_worker(self,show_banner=False):
+        from GalTransl.__main__ import worker
+        # 执行核心翻译任务
+        try:
+            worker(
+                self.project_dir,
+                self.config_file_name,
+                self.translator,
+                show_banner=show_banner
+            )
+            print(f"\n{get_text('translation_completed', GT_LANG)}")
+        except Exception as e:
+            print(f"\nError during translation: {e}") # 添加错误处理
+
+        # 重置状态以便下次循环或退出
+        self.translator = "" # 清空翻译器选择
+
+        try:
+            # 等待用户按键继续或允许退出
+            input("Press Enter to start a new task or Ctrl+C to exit...") 
+            os.system("cls" if os.name == 'nt' else 'clear') # 清屏
+        except KeyboardInterrupt:
+                print(f"\n{get_text('goodbye', GT_LANG)}")
+                return
+
     def run(self):
         # 优先处理命令行参数
         initial_project_path, initial_translator = parse_arguments()
@@ -173,6 +198,7 @@ class ProjectManager:
                 self.config_file_name = config_file_name
                 if initial_translator:
                     self.translator = initial_translator
+                    self.start_worker(show_banner=True)
             else:
                  # 命令行提供的路径无效，将在循环中请求用户输入
                  pass 
@@ -197,30 +223,8 @@ class ProjectManager:
             # 创建快捷方式（如果适用）
             if self.translator not in ["show-plugs", "dump-name"]:
                 self.create_shortcut_win()
-            
-            # 执行核心翻译任务
-            try:
-                from GalTransl.__main__ import worker
-                worker(
-                    self.project_dir,
-                    self.config_file_name,
-                    self.translator,
-                    show_banner=False
-                )
-                print(f"\n{get_text('translation_completed', GT_LANG)}")
-            except Exception as e:
-                print(f"\nError during translation: {e}") # 添加错误处理
-
-            # 重置状态以便下次循环或退出
-            self.translator = "" # 清空翻译器选择
-
-            try:
-                # 等待用户按键继续或允许退出
-                input("Press Enter to start a new task or Ctrl+C to exit...") 
-                os.system("cls" if os.name == 'nt' else 'clear') # 清屏
-            except KeyboardInterrupt:
-                 print(f"\n{get_text('goodbye', GT_LANG)}")
-                 return
+            # 执行核心任务
+            self.start_worker()
 
 
 if __name__ == "__main__":
