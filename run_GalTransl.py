@@ -154,9 +154,10 @@ class ProjectManager:
             # {4}: GT_LANG (语言设置)
             text = TEMPLATE.format(program_dir, run_com, conf_path_in_shortcut, self.translator, GT_LANG)
             
-            with open(shortcut_path, "w", encoding="utf-8") as f:
-                f.write(text)
-            print(f"Shortcut created: {shortcut_path}") # 提示用户创建成功
+            if not os.path.exists(shortcut_path):
+                with open(shortcut_path, "w", encoding="utf-8") as f:
+                    f.write(text)
+                print(f"Shortcut created: {shortcut_path}") # 提示用户创建成功
         except Exception as e:
             print(get_text("error_creating_shortcut", GT_LANG, str(e)))
 
