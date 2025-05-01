@@ -77,10 +77,11 @@ class ForGalTranslate(BaseTranslate):
             messages.append({"role": "assistant", "content": assistant_prompt})
 
         while True:  # 一直循环，直到得到数据
-            LOGGER.debug(
-                f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
-            )
-            LOGGER.debug("->输出：")
+            if self.pj_config.active_workers == 1:
+                LOGGER.info(
+                    f"->{'翻译输入' if not proofread else '校对输入'}：{gptdict}\n{input_src}\n"
+                )
+                LOGGER.info("->输出：")
             resp = ""
             resp = await self.ask_chatbot(
                 model_name=self.model_name,

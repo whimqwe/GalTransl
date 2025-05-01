@@ -138,8 +138,9 @@ class CSakuraTranslate(BaseTranslate):
         messages.append({"role": "user", "content": prompt_req})
 
         while True:  # 一直循环，直到得到数据
-            LOGGER.debug(f"->'翻译输入'：{prompt_req}")
-            LOGGER.debug("->输出：")
+            if self.pj_config.active_workers == 1:
+                LOGGER.info(f"->'翻译输入'：{prompt_req}")
+
             resp = ""
             resp = await self.ask_chatbot(
                 messages=messages,

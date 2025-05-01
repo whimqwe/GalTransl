@@ -267,12 +267,12 @@ class CGPT4Translate(BaseTranslate):
                 self.chatbot.set_api_addr(
                     f"{self.token.domain}{base_path}/chat/completions"
                 )
-
-                # LOGGER.info(
-                #     get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
-                # )
-                # if self.streamOutputMode:
-                #     LOGGER.info(get_text("output", GT_LANG))
+                if self.pj_config.active_workers == 1:
+                    LOGGER.info(
+                        get_text("translation_input" if not proofread else "proofread_input", GT_LANG, gptdict, input_json)
+                    )
+                    if self.streamOutputMode:
+                        LOGGER.info(get_text("output", GT_LANG))
                 resp, data = "", ""
                 if not self.full_context_mode:
                     self._del_previous_message()
@@ -282,7 +282,8 @@ class CGPT4Translate(BaseTranslate):
                     # if self.streamOutputMode:
                     #     print(data, end="", flush=True)
                     resp += data
-
+                if self.pj_config.active_workers == 1:
+                    LOGGER.info(resp)
                 # if not self.streamOutputMode:
                 #     LOGGER.info(get_text("output_with_content", GT_LANG, resp))
                 # else:

@@ -27,7 +27,7 @@ from GalTransl.CSplitter import (
 
 
 async def update_progress_title(
-    bar, semaphore, workersPerProject
+    bar, semaphore, workersPerProject,projectConfig: CProjectConfig
 ):
     """异步任务，用于动态更新 alive_bar 的标题以显示活动工作线程数。"""
     base_title = "翻译进度"
@@ -39,8 +39,11 @@ async def update_progress_title(
             active_workers = workersPerProject - semaphore._value
             # 确保 active_workers 不会是负数（以防万一）
             active_workers = max(0, active_workers)
+            projectConfig.active_workers = active_workers
+            # 更新标题
             new_title = f"{base_title} [活跃任务: {active_workers}/{workersPerProject}]"
             bar.title(new_title)
+
             # 每隔一段时间更新一次，避免过于频繁
             await asyncio.sleep(0.5)
         except asyncio.CancelledError:
@@ -195,12 +198,13 @@ async def doLLMTranslate(
     gptapi = await init_gptapi(projectConfig)
 
     title_update_task = None # 初始化任务变量
+    projectConfig.active_workers = 0
     with alive_bar(total=total_lines, title="翻译进度",unit=" line") as bar:
         projectConfig.bar=bar
 
         # 启动后台任务来更新进度条标题
         title_update_task = asyncio.create_task(
-            update_progress_title(bar, semaphore, workersPerProject)
+            update_progress_title(bar, semaphore, workersPerProject,projectConfig)
         )
 
         # 创建所有翻译任务
