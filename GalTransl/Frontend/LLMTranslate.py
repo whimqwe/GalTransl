@@ -84,18 +84,6 @@ async def doLLMTranslate(
     makedirs(output_dir, exist_ok=True)
     makedirs(cache_dir, exist_ok=True)
 
-    # 初始化name替换表
-    name_replaceDict_path_xlsx = joinpath(
-        projectConfig.getProjectDir(), "name替换表.xlsx"
-    )
-    name_replaceDict_path_csv = joinpath(
-        projectConfig.getProjectDir(), "name替换表.csv"
-    )
-    if isPathExists(name_replaceDict_path_csv):
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_csv)
-    elif isPathExists(name_replaceDict_path_xlsx):
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_xlsx)
-
     # 初始化字典
     projectConfig.pre_dic = CNormalDic(
         initDictList(pre_dic_list, default_dic_dir, project_dir)
@@ -162,12 +150,6 @@ async def doLLMTranslate(
         await gptapi.batch_translate(all_jsons)
         return True
 
-    if not isPathExists(name_replaceDict_path_csv) and not isPathExists(
-        name_replaceDict_path_xlsx
-    ):
-        await dump_name_table_from_chunks(total_chunks, projectConfig)
-        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path)
-
     async def run_task(task_func):
         try:
             result = await task_func
@@ -200,12 +182,28 @@ async def doLLMTranslate(
 
     total_lines = sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
+    # 初始化name替换表
+    name_replaceDict_path_xlsx = joinpath(
+        projectConfig.getProjectDir(), "name替换表.xlsx"
+    )
+    name_replaceDict_path_csv = joinpath(
+        projectConfig.getProjectDir(), "name替换表.csv"
+    )
+    if not isPathExists(name_replaceDict_path_csv) and not isPathExists(
+        name_replaceDict_path_xlsx
+    ):
+        await dump_name_table_from_chunks(total_chunks, projectConfig)
+    if isPathExists(name_replaceDict_path_csv):
+        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_csv)
+    elif isPathExists(name_replaceDict_path_xlsx):
+        projectConfig.name_replaceDict = load_name_table(name_replaceDict_path_xlsx)
+
     # 初始化共享的 gptapi 实例
     gptapi = await init_gptapi(projectConfig)
 
     title_update_task = None  # 初始化任务变量
     projectConfig.active_workers = 1
-    with alive_bar(total=total_lines, title="翻译进度", unit=" line") as bar:
+    with alive_bar(total=total_lines, title="翻译进度", unit=" line", enrich_print=False) as bar:
         projectConfig.bar = bar
 
         # 启动后台任务来更新进度条标题
