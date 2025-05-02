@@ -183,8 +183,7 @@ class ProjectManager:
             input("Press Enter to start a new task or Ctrl+C to exit...") 
             os.system("cls" if os.name == 'nt' else 'clear') # 清屏
         except KeyboardInterrupt:
-                print(f"\n{get_text('goodbye', GT_LANG)}")
-                return
+            return
 
     def run(self):
         # 优先处理命令行参数
@@ -209,7 +208,6 @@ class ProjectManager:
             try:
                 self.get_user_input()
             except KeyboardInterrupt:
-                print(f"\n{get_text('goodbye', GT_LANG)}")
                 return
             
             # 如果没有指定翻译器，则让用户选择
@@ -217,7 +215,6 @@ class ProjectManager:
                 try:
                     self.choose_translator()
                 except KeyboardInterrupt:
-                    print(f"\n{get_text('goodbye', GT_LANG)}")
                     return
             
             # 创建快捷方式（如果适用）
