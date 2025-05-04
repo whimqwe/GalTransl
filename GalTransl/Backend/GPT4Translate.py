@@ -9,7 +9,7 @@ from GalTransl.ConfigHelper import (
     CProjectConfig,
 )
 from GalTransl.CSentense import CSentense, CTransList
-from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
+from GalTransl.Cache import save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
 from GalTransl.Utils import extract_code_blocks, fix_quotes
 from GalTransl.Backend.Prompts import (

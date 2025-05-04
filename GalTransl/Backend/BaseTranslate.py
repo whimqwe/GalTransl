@@ -10,7 +10,7 @@ from GalTransl.ConfigHelper import (
     CProjectConfig,
 )
 from GalTransl.CSentense import CSentense, CTransList
-from GalTransl.Cache import get_transCache_from_json_new, save_transCache_to_json
+from GalTransl.Cache import save_transCache_to_json
 from GalTransl.Dictionary import CGptDict
 from openai import RateLimitError, AsyncOpenAI
 import re
@@ -192,13 +192,7 @@ class BaseTranslate:
         proofread: bool = False,
         retran_key: str = "",
     ) -> CTransList:
-        _, translist_unhit = get_transCache_from_json_new(
-            trans_list,
-            cache_file_path,
-            retry_failed=retry_failed,
-            proofread=proofread,
-            retran_key=retran_key,
-        )
+
 
         if self.skipH:
             LOGGER.warning("skipH: 将跳过含有敏感词的句子")

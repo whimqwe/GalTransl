@@ -8,7 +8,7 @@ import asyncio
 from dataclasses import dataclass
 from GalTransl import LOGGER
 from GalTransl.i18n import get_text, GT_LANG
-from GalTransl.Cache import get_transCache_from_json_new
+from GalTransl.Cache import get_transCache_from_json
 
 from GalTransl.ConfigHelper import initDictList, CProjectConfig
 from GalTransl.Dictionary import CGptDict, CNormalDic
@@ -315,12 +315,13 @@ async def doLLMTranslSingleChunk(
                         get_text("plugin_execution_failed", GT_LANG, plugin.name, e)
                     )
 
-        translist_hit, translist_unhit = get_transCache_from_json_new(
+        translist_hit, translist_unhit = get_transCache_from_json(
             split_chunk.trans_list,
             cache_file_path,
             retry_failed=projectConfig.getKey("retranslFail"),
             proofread=False,
             retran_key=projectConfig.getKey("retranslKey"),
+            eng_type=eng_type,
         )
 
         if len(translist_hit) > 0:
