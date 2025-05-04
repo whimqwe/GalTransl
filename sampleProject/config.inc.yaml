@@ -22,6 +22,9 @@ plugin:
   textPlugins: # 文本处理插件列表，可以设置多个，按顺序执行
     - text_common_normalfix # 常规文本修复插件
     #- text_common_skipNoJP # 跳过无日语句子插件
+  # 某个插件自己的设置可以进入plugins目录内修改对应的yaml文件，也可以这样设置：
+  file_galtransl_json:
+    output_with_src: False # 输出到gt_output时是否保留原文
 
 # 程序设置
 common:
@@ -32,7 +35,7 @@ common:
 
   # 单文件分割设置（※重要：不要在翻译中途修改，否则会导致缓存失效）
   splitFile: "Num" # 是否启用单文件分割,Num为每n条分割一次，Equal为每个文件均分n份。[no/Num/Equal]
-  splitFileNum: 512 # Equal分句时，表示每个文件均分拆成n部分；Num分句时，表示n句拆分一次，此时建议大于100
+  splitFileNum: 2048 # Equal分句时，表示每个文件均分拆成n部分；Num分句时，表示n句拆分一次，此时建议大于100
   splitFileCrossNum: 0 # 分割文件时前后交叉n句，可能可以提高衔接处翻译质量[推荐0或10]。
 
   save_steps: 1 # 每翻译n次保存一次缓存，单个大文件保存耗时久，可以调高到100之类的数来提高速度。[1-999]
@@ -58,9 +61,7 @@ common:
   loggingLevel: info # 日志级别[debug/info/warning]
   saveLog: false # 是否记录日志到文件[True/False]
 
-  # 某个插件自己的设置可以进入plugins目录内修改对应的yaml文件，也可以这样设置：
-  file_subtitle_srt_lrc_vtt: # 示例，可以在项目配置文件中覆盖插件yaml的设置项
-    保存双语字幕: true
+
 
 # 代理设置，使用中转供应商时一般不用开代理
 proxy:
