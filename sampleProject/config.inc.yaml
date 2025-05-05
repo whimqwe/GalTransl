@@ -33,7 +33,7 @@ common:
   language: "ja2zh-cn" # 源语言2(to)目标语言。[zh-cn/zh-tw/en/ja/ko/ru/fr]
 
   # 单文件分割设置
-  ###【重要】分割设置直接影响缓存文件的读取命中，迁移旧项目请确保分割设置一致 ###
+  ###【重要】分割设置直接影响缓存文件的读取命中，迁移旧项目请确保单文件分割设置一致 ###
   splitFile: "Num" # 是否启用单文件分割。Num: 每n条分割一次，Equal: 每个文件均分n份，no: 关闭单文件分割。[no/Num/Equal]
   splitFileNum: 2048 # Num时，表示n句拆分一次；Equal时，表示每个文件均分拆成n部分。
   splitFileCrossNum: 0 # 分割文件时前后交叉n句，可能可以提高衔接处翻译质量[推荐0或10]。
