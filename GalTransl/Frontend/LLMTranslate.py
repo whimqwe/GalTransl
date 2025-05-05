@@ -84,23 +84,6 @@ async def doLLMTranslate(
     makedirs(output_dir, exist_ok=True)
     makedirs(cache_dir, exist_ok=True)
 
-    # 初始化字典
-    projectConfig.pre_dic = CNormalDic(
-        initDictList(pre_dic_list, default_dic_dir, project_dir)
-    )
-    projectConfig.post_dic = CNormalDic(
-        initDictList(post_dic_list, default_dic_dir, project_dir)
-    )
-    projectConfig.gpt_dic = CGptDict(
-        initDictList(gpt_dic_list, default_dic_dir, project_dir)
-    )
-    if projectConfig.getDictCfgSection().get("sortPrePostDict", True):
-        projectConfig.pre_dic.sort_dic()
-        projectConfig.post_dic.sort_dic()
-    elif projectConfig.getDictCfgSection().get("sortDict", True):
-        projectConfig.pre_dic.sort_dic()
-        projectConfig.post_dic.sort_dic()
-        projectConfig.gpt_dic.sort_dic()
     # 语言设置
     if val := projectConfig.getKey("language"):
         sp = val.split("2")
@@ -182,7 +165,7 @@ async def doLLMTranslate(
 
     total_lines = sum([len(chunk.trans_list) for chunk in ordered_chunks])
 
-    # 初始化name替换表
+    # 初始生成name替换表
     name_replaceDict_path_xlsx = joinpath(
         projectConfig.getProjectDir(), "name替换表.xlsx"
     )
@@ -195,13 +178,33 @@ async def doLLMTranslate(
     ):
         await dump_name_table_from_chunks(total_chunks, projectConfig)
         name_replaceDict_firstime = True
+    
+    # 载入字典
+    projectConfig.pre_dic = CNormalDic(
+        initDictList(pre_dic_list, default_dic_dir, project_dir)
+    )
+    projectConfig.post_dic = CNormalDic(
+        initDictList(post_dic_list, default_dic_dir, project_dir)
+    )
+    projectConfig.gpt_dic = CGptDict(
+        initDictList(gpt_dic_list, default_dic_dir, project_dir)
+    )
+    if projectConfig.getDictCfgSection().get("sortPrePostDict", True):
+        projectConfig.pre_dic.sort_dic()
+        projectConfig.post_dic.sort_dic()
+    elif projectConfig.getDictCfgSection().get("sortDict", True):
+        projectConfig.pre_dic.sort_dic()
+        projectConfig.post_dic.sort_dic()
+        projectConfig.gpt_dic.sort_dic()
+
+    # 载入name替换表
     if isPathExists(name_replaceDict_path_csv):
         projectConfig.name_replaceDict = load_name_table(
-            name_replaceDict_path_csv, name_replaceDict_firstime
+            name_replaceDict_path_csv, name_replaceDict_firstime,total_chunks,projectConfig
         )
     elif isPathExists(name_replaceDict_path_xlsx):
         projectConfig.name_replaceDict = load_name_table(
-            name_replaceDict_path_xlsx, name_replaceDict_firstime
+            name_replaceDict_path_xlsx, name_replaceDict_firstime,total_chunks,projectConfig
         )
 
     # 初始化共享的 gptapi 实例
@@ -303,7 +306,9 @@ async def doLLMTranslSingleChunk(
                 "file_mtbench_chrf",
             ]:
                 tran.analyse_dialogue()
+
             tran.post_jp = pre_dic.do_replace(tran.post_jp, tran)
+
             if projectConfig.getDictCfgSection("usePreDictInName"):
                 if isinstance(tran.speaker, str) and isinstance(tran._speaker, str):
                     tran.speaker = pre_dic.do_replace(tran.speaker, tran)
@@ -325,7 +330,7 @@ async def doLLMTranslSingleChunk(
         )
 
         if len(translist_hit) > 0:
-            projectConfig.bar(len(translist_hit), skipped=True)
+            projectConfig.bar(len(translist_hit), skipped=True) # 更新进度条
 
         if len(translist_unhit) > 0:
             # 执行翻译
@@ -343,10 +348,7 @@ async def doLLMTranslSingleChunk(
 
             # 执行校对（如果启用）
             if projectConfig.getKey("gpt.enableProofRead"):
-                if (
-                    "newbing" in gptapi.__class__.__name__.lower()
-                    or "gpt4" in gptapi.__class__.__name__.lower()
-                ):
+                if "gpt4" in eng_type:
                     await gptapi.batch_translate(
                         file_name,
                         cache_file_path,
@@ -368,20 +370,10 @@ async def doLLMTranslSingleChunk(
                     tran = plugin.plugin_object.before_dst_processed(tran)
                 except Exception as e:
                     LOGGER.error(f" 插件 {plugin.name} 执行失败: {e}")
+
             tran.recover_dialogue_symbol()
             tran.post_zh = post_dic.do_replace(tran.post_zh, tran)
-            if projectConfig.getDictCfgSection("usePostDictInName"):
-                if tran._speaker:
-                    if isinstance(tran.speaker, list) and isinstance(
-                        tran._speaker, list
-                    ):
-                        tran._speaker = [
-                            post_dic.do_replace(s, tran, True) for s in tran.speaker
-                        ]
-                    elif isinstance(tran.speaker, str) and isinstance(
-                        tran._speaker, str
-                    ):
-                        tran._speaker = post_dic.do_replace(tran.speaker, tran, True)
+
             for plugin in tPlugins:
                 try:
                     tran = plugin.plugin_object.after_dst_processed(tran)
