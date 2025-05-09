@@ -64,6 +64,10 @@ TRANSLATOR_SUPPORTED = {
         "zh-cn": "（GPT4/Claude-3/Deepseek-V3）为翻译Gal重新定制的翻译模板，更快更省更好。默认deepseek-chat模型",
         "en": " （GPT4/Claude-3/Deepseek-V3）Customized template for Gal translation, faster and more efficient. Default model: deepseek-chat"
     },
+    "Gemini": {
+        "zh-cn": "（Gemini）Gemini翻译模板,推荐2.5pro模型",
+        "en": " (Gemini) Gemini translation template, recommended 2.5pro model"
+    },
     "gpt4": {
         "zh-cn": "（GPT4/Claude-3/Deepseek-V3）比较聪明的模型通用的翻译模板，默认gpt-4模型",
         "en": "(GPT4/Claude-3/Deepseek-V3) General translation template for smarter models. Default model: gpt-4"
@@ -103,13 +107,14 @@ TRANSLATOR_SUPPORTED = {
 }
 TRANSLATOR_DEFAULT_ENGINE = {
     "ForGal": "deepseek-chat",
+    "Gemini": "gemini-2.5-pro-preview-05-06",
     "gpt4": "gpt-4",
     "r1": "deepseek-reasoner",
     "sakura-v1.0": "sakura-7b-qwen2.5-v1.0",
     "galtransl-v3": "Sakura-GalTransl-7B-v3",
     "GenDic": "deepseek-chat",
 }
-NEED_OpenAITokenPool=["gpt", "r1", "ForGal","GenDic"]
+NEED_OpenAITokenPool=["gpt", "r1", "ForGal","GenDic","Gemini"]
 LANG_SUPPORTED = {
     "zh-cn": "Simplified_Chinese",
     "zh-tw": "Traditional_Chinese",

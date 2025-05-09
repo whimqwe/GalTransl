@@ -163,6 +163,10 @@ UI_TEXT = {
         "zh-cn": "-> 非json：\n{0}\n",
         "en": "-> Non-JSON:\n{0}\n"
     },
+    "Gemini_Output_NoneType":{
+        "zh-cn": "-> [解析错误]Gemini拒绝了翻译(空回复)",
+        "en": "-> [Parse Error]Gemini refused the translation (blank reply)"
+    },
     "cache_read_error": {
         "zh-cn": "读取缓存{0}时出现错误，请检查错误信息",
         "en": "Error reading cache {0}, please check error message"

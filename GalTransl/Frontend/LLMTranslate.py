@@ -467,6 +467,10 @@ async def init_gptapi(
             from GalTransl.Backend.ForGalTranslate import ForGalTranslate
 
             return ForGalTranslate(projectConfig, eng_type, proxyPool, tokenPool)
+        case "Gemini":
+            from GalTransl.Backend.GeminiTranslate import CGeminiTranslate
+
+            return CGeminiTranslate(projectConfig, eng_type, proxyPool, tokenPool)
         case "gpt4" | "gpt4-turbo" | "r1":
             from GalTransl.Backend.GPT4Translate import CGPT4Translate
 

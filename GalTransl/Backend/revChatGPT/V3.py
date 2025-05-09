@@ -84,7 +84,9 @@ class Chatbot:
         self.system_prompt: str = system_prompt
         self.max_tokens: int = max_tokens
         self.truncate_limit: int = truncate_limit or (
-            30500
+            100000
+            if "gemini" in engine.lower()
+            else 30500
             if "-32k" in engine
             else 14500
             if "-16k" in engine
@@ -169,7 +171,12 @@ class Chatbot:
         """
         Get max tokens
         """
-        return min(self.max_tokens - self.get_token_count(convo_id), 4096)
+        model_max_tokens = (
+        65535
+        if "gemini" in self.engine.lower()
+        else 4096
+        )
+        return min(self.max_tokens - self.get_token_count(convo_id),model_max_tokens)
 
     def ask_stream(
         self,
